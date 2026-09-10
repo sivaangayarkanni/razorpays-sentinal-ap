@@ -22,3 +22,8 @@ coverage/
 .env.local
 frontend/.env.local
 frontend/.env.production
+
+.vercel
+frontend/.vercel
+frontend/.env.local
+frontend/.env.production
