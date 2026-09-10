@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink text-slate-100 antialiased min-h-screen;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(51, 159, 255, 0.18), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(99, 102, 241, 0.12), transparent);
+}
+
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+}
+
+.badge {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
+}
+
+.badge-allow { @apply bg-emerald-500/15 text-emerald-300 border border-emerald-500/30; }
+.badge-block { @apply bg-rose-500/15 text-rose-300 border border-rose-500/30; }
+.badge-queue { @apply bg-amber-500/15 text-amber-300 border border-amber-500/30; }
+.badge-clear { @apply bg-sky-500/15 text-sky-300 border border-sky-500/30; }
+.badge-fail { @apply bg-slate-500/15 text-slate-300 border border-slate-500/30; }
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+    focus:outline-none focus:ring-2 focus:ring-sentinel-400/50 disabled:opacity-50;
+}
+.btn-primary {
+  @apply btn bg-gradient-to-r from-sentinel-600 to-indigo-600 text-white shadow-glow hover:brightness-110;
+}
+.btn-ghost {
+  @apply btn bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200;
+}
+.input {
+  @apply w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 text-sm
+    placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sentinel-500/40;
+}
