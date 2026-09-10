@@ -12,6 +12,8 @@ import {
   Zap,
 } from "lucide-react";
 import { Nav } from "@/components/Nav";
+import { PitchDeck } from "@/components/PitchDeck";
+import { SystemStatus } from "@/components/SystemStatus";
 
 const TRUST = [
   "FastAPI · OpenAPI",
@@ -104,9 +106,15 @@ export default function HomePage() {
                   Open Demo Playground
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
+                <Link href="/#pitch" className="btn-secondary !px-5 !py-3">
+                  View Pitch Deck
+                </Link>
                 <Link href="/dashboard" className="btn-secondary !px-5 !py-3">
                   Admin Dashboard
                 </Link>
+              </div>
+              <div className="mt-5 flex justify-center">
+                <SystemStatus />
               </div>
             </div>
 
@@ -126,8 +134,10 @@ export default function HomePage() {
           </div>
         </section>
 
+        <PitchDeck />
+
         {/* Architecture */}
-        <section className="mx-auto max-w-7xl px-4 pb-8">
+        <section className="mx-auto max-w-7xl px-4 pb-8 pt-10">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sentinel-400">

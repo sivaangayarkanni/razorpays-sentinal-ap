@@ -27,3 +27,4 @@ frontend/.env.production
 frontend/.vercel
 frontend/.env.local
 frontend/.env.production
+*.tsbuildinfo

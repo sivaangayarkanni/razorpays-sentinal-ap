@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # Razorpay (test keys — never hardcode production secrets)
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""  # optional; if empty, webhook skips verify in test
     razorpay_mock: bool = True  # use mock when keys empty
 
     # Bank health defaults

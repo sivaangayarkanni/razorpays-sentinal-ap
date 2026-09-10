@@ -3,6 +3,7 @@ from app.models.entities import (
     AuditEvent,
     BankHealthSnapshot,
     Decision,
+    IdempotencyRecord,
     Intent,
     Organization,
     Policy,
@@ -18,4 +19,5 @@ __all__ = [
     "QueueJob",
     "BankHealthSnapshot",
     "AuditEvent",
+    "IdempotencyRecord",
 ]

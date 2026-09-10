@@ -297,6 +297,14 @@ export default function PlaygroundPage() {
               </a>
             </span>
           )}
+          <span className="text-[11px] text-slate-500">
+            Webhook:{" "}
+            <code className="rounded bg-white/5 px-1 font-mono text-slate-400">
+              POST /api/v1/webhooks/razorpay
+            </code>{" "}
+            (payment.captured · optional{" "}
+            <code className="font-mono text-slate-500">RAZORPAY_WEBHOOK_SECRET</code>)
+          </span>
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">

@@ -18,7 +18,7 @@ from app.services.audit import write_audit
 from app.services.razorpay_client import api_mode_from_key, is_mock_mode, razorpay_client
 from app.core.config import get_settings
 
-router = APIRouter(tags=["Payments"])
+router = APIRouter(tags=["Payments"])  # public config also under Public via OpenAPI override
 bearer = HTTPBearer(auto_error=False)
 
 
@@ -70,7 +70,7 @@ async def _require_admin_or_agent(
     raise HTTPException(status_code=401, detail="Admin Bearer token or X-API-Key required")
 
 
-@router.get("/public/config", response_model=PublicConfigResponse)
+@router.get("/public/config", response_model=PublicConfigResponse, tags=["Public"])
 async def public_config() -> PublicConfigResponse:
     """Expose public Razorpay key id for Checkout.js (never the secret)."""
     settings = get_settings()

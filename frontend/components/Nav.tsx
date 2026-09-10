@@ -8,6 +8,7 @@ import { Menu, X, Shield } from "lucide-react";
 
 const links = [
   { href: "/", label: "Home" },
+  { href: "/#pitch", label: "Pitch" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/policies", label: "Policies" },
   { href: "/bank-health", label: "Bank Health" },
@@ -50,7 +51,12 @@ export function Nav() {
 
         <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Primary">
           {links.map((l) => {
-            const active = path === l.href;
+            const active =
+              l.href === "/#pitch"
+                ? false
+                : l.href === "/"
+                  ? path === "/"
+                  : path === l.href || path.startsWith(l.href + "/");
             return (
               <Link
                 key={l.href}

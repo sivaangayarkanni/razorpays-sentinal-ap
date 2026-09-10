@@ -3,29 +3,47 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import admin, agent, payments
+from app.api import admin, agent, metrics, payments, webhooks
 from app.core.config import get_settings
 from app.core.database import Base, engine
+from app.middleware.request_id import RequestIdMiddleware, get_request_id
 from app.seed import seed_demo_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sentinel-ap")
 
+APP_VERSION = "1.2.0"
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings = get_settings()
-    logger.info("Starting %s (%s)", settings.app_name, settings.app_env)
-    # Auto-create tables for demo/docker; Alembic used for production migrations
+    logger.info("Starting %s (%s) v%s", settings.app_name, settings.app_env, APP_VERSION)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await seed_demo_data()
     yield
     await engine.dispose()
+
+
+def _error_body(request: Request, *, status_code: int, detail: Any) -> dict[str, Any]:
+    request_id = get_request_id(request)
+    if isinstance(detail, dict):
+        body = dict(detail)
+    else:
+        body = {"error": "http_error", "message": detail}
+    body.setdefault("status_code", status_code)
+    if request_id:
+        body["request_id"] = request_id
+    return body
 
 
 def create_app() -> FastAPI:
@@ -34,15 +52,25 @@ def create_app() -> FastAPI:
         title="Sentinel-AP",
         description=(
             "Smart Security Guardrail middleware between Autonomous AI Agents "
-            "and Razorpay Payment Gateway. Gate 1: Policy Hard Block. "
-            "Gate 2: Bank Health Soft-Fail Queue. Live Razorpay test-mode Checkout."
+            "and Razorpay Payment Gateway.\n\n"
+            "**Gate 1:** Policy Hard Block (deterministic budgets / SKU lists)\n\n"
+            "**Gate 2:** Bank Health Soft-Fail Queue\n\n"
+            "**Payments:** Live Razorpay test-mode Orders + Checkout verify + webhooks\n\n"
+            "Supports `Idempotency-Key` on agent intents and `X-Request-Id` on all responses."
         ),
-        version="1.1.0",
+        version=APP_VERSION,
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
+        openapi_tags=[
+            {"name": "Agent", "description": "AI buyer agent payment intents (X-API-Key + Idempotency-Key)"},
+            {"name": "Admin", "description": "Dashboard, policies, queue, bank health, audit"},
+            {"name": "Payments", "description": "Checkout verify + Razorpay admin probe"},
+            {"name": "Webhooks", "description": "Razorpay webhook receiver (payment.captured)"},
+            {"name": "Public", "description": "Public config + metrics (no auth)"},
+        ],
     )
-    # Ensure vercel.app + localhost always allowed even if env is partial
+
     origins = list(settings.cors_origin_list)
     for extra in (
         "https://sentinel-ap.vercel.app",
@@ -51,6 +79,8 @@ def create_app() -> FastAPI:
     ):
         if extra not in origins:
             origins.append(extra)
+
+    # Middleware order: last added runs first for request
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -58,14 +88,41 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-Id"],
     )
+    app.add_middleware(RequestIdMiddleware)
+
     app.include_router(agent.router, prefix=settings.api_prefix)
     app.include_router(admin.router, prefix=settings.api_prefix)
     app.include_router(payments.router, prefix=settings.api_prefix)
+    app.include_router(webhooks.router, prefix=settings.api_prefix)
+    app.include_router(metrics.router, prefix=settings.api_prefix)
 
-    @app.get("/health")
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=_error_body(request, status_code=exc.status_code, detail=exc.detail),
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=422,
+            content=_error_body(
+                request,
+                status_code=422,
+                detail={
+                    "error": "validation_error",
+                    "message": "Request validation failed",
+                    "errors": exc.errors(),
+                },
+            ),
+        )
+
+    @app.get("/health", tags=["Public"])
     async def health():
-        return {"status": "ok", "service": "sentinel-ap", "version": "1.1.0"}
+        return {"status": "ok", "service": "sentinel-ap", "version": APP_VERSION}
 
     return app
 

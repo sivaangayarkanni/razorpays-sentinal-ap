@@ -54,6 +54,14 @@ RAZORPAY_MOCK=false
 
 Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, mock, api_mode }`.
 
+**v1.2 production features**
+- `Idempotency-Key` on `POST /api/v1/agent/intents` (duplicate → same intent)
+- `X-Request-Id` on every response
+- `POST /api/v1/webhooks/razorpay` (`payment.captured`; optional `RAZORPAY_WEBHOOK_SECRET`)
+- `GET /api/v1/public/metrics` — intents by status, blocks, queue depth
+- Pitch deck on landing `#pitch` · docs in `docs/ARCHITECTURE.md` + `docs/INTERNSHIP.md`
+- Agent demo: `python examples/agent_buyer.py`
+
 Admin probe: `GET /api/v1/admin/razorpay/status` (JWT) → mode + key prefix + last probe.
 
 ## Architecture
@@ -117,7 +125,7 @@ docker compose up --build
 
 ## 5-minute local demo script
 
-1. Open **http://localhost:3000** — pitch landing page.
+1. Open **http://localhost:3000** — landing + `#pitch` slide strip.
 2. Go to **Demo Playground**.
 3. Click **✓ Successful clearance** → status `ALLOW`, Gate 1 + Gate 2 pass, Razorpay `order_id` (mock unless keys set).
 4. Click **⛔ Hard Block — blacklisted SKU** → `HARD_BLOCK` / `SKU_BLACKLISTED`.
