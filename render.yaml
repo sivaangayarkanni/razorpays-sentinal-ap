@@ -39,7 +39,7 @@ services:
       - key: ADMIN_EMAIL
         value: admin@sentinel-ap.local
       - key: ADMIN_PASSWORD
-        generateValue: true
+        value: admin123
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
