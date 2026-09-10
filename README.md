@@ -21,6 +21,16 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 | **API docs** | https://sentinel-api-ecw9.onrender.com/docs |
 | **Health** | https://sentinel-api-ecw9.onrender.com/health |
 
+### Pitch & demo deliverables
+
+| Deliverable | Path |
+|-------------|------|
+| One-page pitch (PDF) | [`docs/Sentinel-AP-Pitch-One-Pager.pdf`](docs/Sentinel-AP-Pitch-One-Pager.pdf) |
+| Pitch HTML source | [`docs/pitch-one-pager.html`](docs/pitch-one-pager.html) |
+| Recorded-demo voiceover script | [`docs/DEMO_RECORDING_SCRIPT.md`](docs/DEMO_RECORDING_SCRIPT.md) |
+| Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Internship notes | [`docs/INTERNSHIP.md`](docs/INTERNSHIP.md) |
+
 **Demo credentials**
 - Admin: `admin@sentinel-ap.local` / `admin123`
 - Agent API key: `sap_demo000000000000000000000000000001`
@@ -60,6 +70,8 @@ Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, m
 - `POST /api/v1/webhooks/razorpay` (`payment.captured`; optional `RAZORPAY_WEBHOOK_SECRET`)
 - `GET /api/v1/public/metrics` — intents by status, blocks, queue depth
 - Pitch deck on landing `#pitch` · docs in `docs/ARCHITECTURE.md` + `docs/INTERNSHIP.md`
+- **One-page pitch PDF:** [`docs/Sentinel-AP-Pitch-One-Pager.pdf`](docs/Sentinel-AP-Pitch-One-Pager.pdf) (HTML source: [`docs/pitch-one-pager.html`](docs/pitch-one-pager.html))
+- **Demo recording script (~3–5 min):** [`docs/DEMO_RECORDING_SCRIPT.md`](docs/DEMO_RECORDING_SCRIPT.md)
 - Agent demo: `python examples/agent_buyer.py`
 
 Admin probe: `GET /api/v1/admin/razorpay/status` (JWT) → mode + key prefix + last probe.
