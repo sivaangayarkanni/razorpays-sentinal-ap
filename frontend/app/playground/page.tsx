@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Ban,
   CheckCircle2,
+  CreditCard,
   PauseCircle,
   Play,
   Terminal,
@@ -11,7 +12,15 @@ import {
 import { Nav } from "@/components/Nav";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState, ErrorBanner, PageHeader } from "@/components/ui";
-import { api, formatINR, IntentResult, API_URL } from "@/lib/api";
+import {
+  api,
+  formatINR,
+  IntentResult,
+  API_URL,
+  PublicConfig,
+  isRealRazorpayOrder,
+  loadRazorpayCheckout,
+} from "@/lib/api";
 
 const DEMO_KEY = "sap_demo000000000000000000000000000001";
 
@@ -19,7 +28,7 @@ const SCENARIOS = [
   {
     id: "allow",
     title: "Successful clearance",
-    desc: "Whitelisted SKU, under budget, healthy bank → ALLOW",
+    desc: "Whitelisted SKU, under budget, healthy bank → ALLOW + Checkout",
     body: { amount_paise: 4999_00, currency: "INR", sku: "LAPTOP-PRO", description: "MacBook purchase" },
     prep: "healthy" as const,
     icon: CheckCircle2,
@@ -64,8 +73,23 @@ export default function PlaygroundPage() {
   const [adminToken, setAdminToken] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [activeScenario, setActiveScenario] = useState<string | null>(null);
+  const [config, setConfig] = useState<PublicConfig | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState<{
+    payment_id: string;
+    order_id: string;
+  } | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const push = (m: string) => setLog((l) => [m, ...l].slice(0, 20));
+
+  useEffect(() => {
+    api
+      .publicConfig()
+      .then(setConfig)
+      .catch(() =>
+        setConfig({ razorpay_key_id: "", mock: true, api_mode: "mock" })
+      );
+  }, []);
 
   const ensureAdmin = async () => {
     if (adminToken) return adminToken;
@@ -74,11 +98,87 @@ export default function PlaygroundPage() {
     return res.access_token;
   };
 
+  const openCheckout = async (intent: IntentResult) => {
+    if (!intent.razorpay_order_id || !isRealRazorpayOrder(intent.razorpay_order_id)) {
+      push("Mock order — Checkout skipped (set RAZORPAY_MOCK=false for live test)");
+      return;
+    }
+    setCheckoutLoading(true);
+    setError("");
+    try {
+      let cfg = config;
+      if (!cfg || cfg.mock || !cfg.razorpay_key_id) {
+        cfg = await api.publicConfig();
+        setConfig(cfg);
+      }
+      if (cfg.mock || !cfg.razorpay_key_id) {
+        setError("Razorpay is in mock mode — no Checkout key available");
+        return;
+      }
+      const ok = await loadRazorpayCheckout();
+      if (!ok || !window.Razorpay) {
+        setError("Failed to load Razorpay Checkout.js");
+        return;
+      }
+      push(`Opening Razorpay Checkout for ${intent.razorpay_order_id}`);
+      const rzp = new window.Razorpay({
+        key: cfg.razorpay_key_id,
+        amount: intent.amount_paise,
+        currency: intent.currency || "INR",
+        name: "Sentinel-AP",
+        description: `${intent.sku} · Guardrailed agent payment`,
+        order_id: intent.razorpay_order_id,
+        prefill: {
+          name: "Buildathon Judge",
+          email: "judge@sentinel-ap.demo",
+        },
+        theme: { color: "#10b981" },
+        handler: async (response: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) => {
+          try {
+            push(`Checkout success → verifying ${response.razorpay_payment_id}`);
+            const verified = await api.verifyPayment(apiKey, {
+              intent_id: intent.id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            setPaymentSuccess({
+              payment_id: verified.razorpay_payment_id || response.razorpay_payment_id,
+              order_id: verified.razorpay_order_id || response.razorpay_order_id,
+            });
+            setResult({
+              ...intent,
+              razorpay_payment_id: verified.razorpay_payment_id || response.razorpay_payment_id,
+              message: verified.message,
+            });
+            push(`Verified payment ${response.razorpay_payment_id}`);
+          } catch (e: any) {
+            setError(typeof e.message === "string" ? e.message : "Verify failed");
+          }
+        },
+      });
+      rzp.on("payment.failed", (resp: unknown) => {
+        push(`Payment failed: ${JSON.stringify(resp)}`);
+        setError("Razorpay payment failed — try test card 4111 1111 1111 1111");
+      });
+      rzp.open();
+    } catch (e: any) {
+      setError(typeof e.message === "string" ? e.message : "Checkout error");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   const runScenario = async (s: (typeof SCENARIOS)[number]) => {
     setLoading(true);
     setActiveScenario(s.id);
     setError("");
     setResult(null);
+    setPaymentSuccess(null);
     try {
       if (s.prep === "degrade") {
         const tok = await ensureAdmin();
@@ -92,6 +192,10 @@ export default function PlaygroundPage() {
       const res = await api.createIntent(apiKey, s.body);
       setResult(res);
       push(`${s.title} → ${res.status}`);
+      if (res.status === "ALLOW" && isRealRazorpayOrder(res.razorpay_order_id)) {
+        // Auto-open Checkout for successful live orders
+        await openCheckout(res);
+      }
     } catch (e: any) {
       setError(typeof e.message === "string" ? e.message : JSON.stringify(e.message));
     } finally {
@@ -104,6 +208,7 @@ export default function PlaygroundPage() {
     setLoading(true);
     setError("");
     setResult(null);
+    setPaymentSuccess(null);
     try {
       const res = await api.createIntent(apiKey, {
         amount_paise: amount,
@@ -113,6 +218,9 @@ export default function PlaygroundPage() {
       });
       setResult(res);
       push(`Custom → ${res.status}`);
+      if (res.status === "ALLOW" && isRealRazorpayOrder(res.razorpay_order_id)) {
+        await openCheckout(res);
+      }
     } catch (e: any) {
       setError(typeof e.message === "string" ? e.message : JSON.stringify(e.message));
     } finally {
@@ -139,6 +247,20 @@ export default function PlaygroundPage() {
     }
   };
 
+  const modeLabel =
+    config?.mock || config?.api_mode === "mock"
+      ? "Mock mode"
+      : config?.api_mode === "test"
+        ? "Test mode · Razorpay"
+        : config?.api_mode === "live"
+          ? "Live mode · Razorpay"
+          : "Razorpay";
+
+  const modeBadgeClass =
+    config?.mock || config?.api_mode === "mock"
+      ? "bg-slate-500/20 text-slate-300 ring-slate-500/30"
+      : "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30";
+
   return (
     <>
       <Nav />
@@ -154,6 +276,28 @@ export default function PlaygroundPage() {
             </>
           }
         />
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${modeBadgeClass}`}
+          >
+            <CreditCard className="h-3 w-3" aria-hidden />
+            {modeLabel}
+          </span>
+          {!config?.mock && (
+            <span className="text-[11px] text-slate-500">
+              Test card: 4111 1111 1111 1111 · any future expiry · any CVV ·{" "}
+              <a
+                className="text-sentinel-400 underline-offset-2 hover:underline"
+                href="https://razorpay.com/docs/payments/payments/test-card-details/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                docs
+              </a>
+            </span>
+          )}
+        </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
@@ -232,6 +376,20 @@ export default function PlaygroundPage() {
                   icon={Terminal}
                 />
               )}
+              {paymentSuccess && (
+                <div className="mb-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4" aria-hidden />
+                    Payment verified
+                  </div>
+                  <p className="mt-1 font-mono text-[11px] text-emerald-200/80">
+                    payment_id: {paymentSuccess.payment_id}
+                  </p>
+                  <p className="font-mono text-[11px] text-emerald-200/60">
+                    order_id: {paymentSuccess.order_id}
+                  </p>
+                </div>
+              )}
               {result && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
@@ -262,8 +420,25 @@ export default function PlaygroundPage() {
                   {result.razorpay_order_id && (
                     <p className="font-mono text-xs text-emerald-400">
                       Razorpay order: {result.razorpay_order_id}
+                      {isRealRazorpayOrder(result.razorpay_order_id) ? " · live test" : " · mock"}
                     </p>
                   )}
+                  {result.razorpay_payment_id && (
+                    <p className="font-mono text-xs text-emerald-300">
+                      Razorpay payment: {result.razorpay_payment_id}
+                    </p>
+                  )}
+                  {result.status === "ALLOW" &&
+                    isRealRazorpayOrder(result.razorpay_order_id) &&
+                    !paymentSuccess && (
+                      <button
+                        className="btn-primary w-full"
+                        disabled={loading || checkoutLoading}
+                        onClick={() => openCheckout(result)}
+                      >
+                        {checkoutLoading ? "Opening Checkout…" : "Pay with Razorpay Checkout"}
+                      </button>
+                    )}
                   {result.status === "QUEUED" && result.queue_job_id && (
                     <button className="btn-primary w-full" onClick={clearAndRetry} disabled={loading}>
                       Restore bank health &amp; clear queue

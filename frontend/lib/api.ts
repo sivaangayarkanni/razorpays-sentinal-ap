@@ -8,6 +8,7 @@ export type IntentResult = {
   sku: string;
   description?: string;
   razorpay_order_id?: string;
+  razorpay_payment_id?: string;
   decisions: Array<{
     gate: string;
     outcome: string;
@@ -19,6 +20,21 @@ export type IntentResult = {
   queue_job_id?: string;
   message: string;
   created_at: string;
+};
+
+export type PublicConfig = {
+  razorpay_key_id: string;
+  mock: boolean;
+  api_mode: "mock" | "test" | "live" | "unknown" | string;
+};
+
+export type PaymentVerifyResult = {
+  success: boolean;
+  intent_id: string;
+  status: string;
+  razorpay_order_id?: string;
+  razorpay_payment_id?: string;
+  message: string;
 };
 
 async function request<T>(
@@ -80,6 +96,31 @@ export const api = {
       apiKey,
       body: JSON.stringify(body),
     }),
+  publicConfig: () => request<PublicConfig>("/api/v1/public/config"),
+  verifyPayment: (
+    apiKey: string,
+    body: {
+      intent_id: string;
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+    }
+  ) =>
+    request<PaymentVerifyResult>("/api/v1/payments/verify", {
+      method: "POST",
+      apiKey,
+      body: JSON.stringify(body),
+    }),
+  razorpayStatus: (token: string) =>
+    request<{
+      mode: string;
+      key_id_prefix: string;
+      mock: boolean;
+      keys_configured: boolean;
+      last_probe_at?: string;
+      last_probe_ok?: boolean;
+      last_probe_detail?: string;
+    }>("/api/v1/admin/razorpay/status", { token }),
 };
 
 export function formatINR(paise: number): string {
@@ -88,6 +129,38 @@ export function formatINR(paise: number): string {
     currency: "INR",
     maximumFractionDigits: 2,
   }).format(paise / 100);
+}
+
+export function isRealRazorpayOrder(orderId?: string | null): boolean {
+  return !!orderId && !orderId.startsWith("order_mock_");
+}
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => {
+      open: () => void;
+      on: (event: string, handler: (resp: unknown) => void) => void;
+    };
+  }
+}
+
+export function loadRazorpayCheckout(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve(false);
+      return;
+    }
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(!!window.Razorpay);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 }
 
 export { API_URL };

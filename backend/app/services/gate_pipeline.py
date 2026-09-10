@@ -191,25 +191,39 @@ async def process_intent(
     if order.success:
         intent.status = DecisionOutcome.ALLOW
         intent.razorpay_order_id = order.order_id
+        # Live Checkout: payment_id arrives after verify; mock may include one
         intent.razorpay_payment_id = order.payment_id
+        mock_flag = bool(getattr(order, "mock", False) or (order.order_id or "").startswith("order_mock_"))
+        reason_msg = (
+            "Mock Razorpay order created (RAZORPAY_MOCK)"
+            if mock_flag
+            else "Live Razorpay Order created — awaiting Checkout payment + signature verify"
+        )
         db.add(
             Decision(
                 intent_id=intent.id,
                 gate="razorpay",
                 outcome=DecisionOutcome.ALLOW,
-                reason_code="PAYMENT_DISPATCHED",
-                reason_message="Order created on Razorpay",
-                details=order.raw or {},
+                reason_code="ORDER_CREATED" if not mock_flag else "PAYMENT_DISPATCHED",
+                reason_message=reason_msg,
+                details={**(order.raw or {}), "mock": mock_flag},
             )
         )
         await write_audit(
             db,
             actor=f"agent:{agent.id}",
-            action="intent.allowed",
+            action="razorpay.order_created" if not mock_flag else "intent.allowed",
             organization_id=organization.id,
             resource_type="intent",
             resource_id=str(intent.id),
-            payload={"order_id": order.order_id},
+            payload={
+                "order_id": order.order_id,
+                "mock": mock_flag,
+                "amount_paise": amount_paise,
+                "currency": currency.upper(),
+                "sku": sku,
+                "gate": "razorpay",
+            },
         )
     else:
         intent.status = DecisionOutcome.FAILED
@@ -222,6 +236,15 @@ async def process_intent(
                 reason_message=order.error or "Unknown Razorpay error",
                 details={},
             )
+        )
+        await write_audit(
+            db,
+            actor=f"agent:{agent.id}",
+            action="razorpay.order_failed",
+            organization_id=organization.id,
+            resource_type="intent",
+            resource_id=str(intent.id),
+            payload={"error": order.error, "sku": sku, "amount_paise": amount_paise},
         )
 
     await db.flush()

@@ -31,7 +31,7 @@ services:
       - key: DEBUG
         value: "false"
       - key: RAZORPAY_MOCK
-        value: "true"
+        value: "false"
       - key: BANK_HEALTH_THRESHOLD
         value: "0.95"
       - key: BANK_HEALTH_MOCK_SUCCESS_RATE
@@ -73,7 +73,7 @@ services:
       - key: DEBUG
         value: "false"
       - key: RAZORPAY_MOCK
-        value: "true"
+        value: "false"
       - key: BANK_HEALTH_THRESHOLD
         value: "0.95"
       - key: BANK_HEALTH_MOCK_SUCCESS_RATE

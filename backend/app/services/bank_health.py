@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.core.config import get_settings
+from app.services.razorpay_client import is_mock_mode, _record_probe
 
 
 @dataclass
@@ -40,7 +41,7 @@ class BankHealthService:
         if self._forced_rate is not None:
             success_rate = self._forced_rate
             details = {"mode": "forced", "note": "Demo override active"}
-        elif settings.razorpay_mock or not settings.razorpay_key_id:
+        elif is_mock_mode():
             # Simulate slight jitter around configured mock rate
             base = settings.bank_health_mock_success_rate
             jitter = random.uniform(-0.01, 0.01)
@@ -74,9 +75,12 @@ class BankHealthService:
                     auth=(settings.razorpay_key_id, settings.razorpay_key_secret),
                 )
                 if resp.status_code < 500:
+                    _record_probe(True, f"bank_health probe http={resp.status_code}")
                     return 0.99, {"mode": "live", "http_status": resp.status_code}
+                _record_probe(False, f"bank_health probe http={resp.status_code}")
                 return 0.5, {"mode": "live", "http_status": resp.status_code, "error": "upstream_5xx"}
         except Exception as exc:  # noqa: BLE001
+            _record_probe(False, f"bank_health probe error: {exc}")
             return 0.0, {"mode": "live", "error": str(exc)}
 
 

@@ -1,12 +1,13 @@
 """Agent-facing intent API."""
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
 from app.api.deps import AgentDep, DbSession
-from app.models.entities import Intent, QueueJob
+from app.core.rate_limit import intent_limiter
+from app.models.entities import Intent
 from app.schemas.api import IntentCreate, IntentResponse, DecisionOut
 from app.services.gate_pipeline import process_intent
 
@@ -14,7 +15,18 @@ router = APIRouter(prefix="/agent", tags=["Agent"])
 
 
 @router.post("/intents", response_model=IntentResponse)
-async def create_intent(body: IntentCreate, agent: AgentDep, db: DbSession) -> IntentResponse:
+async def create_intent(
+    body: IntentCreate,
+    agent: AgentDep,
+    db: DbSession,
+    request: Request,
+) -> IntentResponse:
+    # Light in-memory rate limit (per API key; falls back to client host)
+    api_key = request.headers.get("X-API-Key") or ""
+    rl_key = api_key[:20] if api_key else (request.client.host if request.client else "anon")
+    if not intent_limiter.allow(rl_key):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded — try again shortly")
+
     intent = await process_intent(
         db,
         agent=agent,
@@ -36,7 +48,7 @@ async def create_intent(body: IntentCreate, agent: AgentDep, db: DbSession) -> I
 
     queue_job_id = intent.queue_jobs[0].id if intent.queue_jobs else None
     messages = {
-        "ALLOW": "Passed Gate 1 & Gate 2 — payment dispatched to Razorpay",
+        "ALLOW": "Passed Gate 1 & Gate 2 — Razorpay order created (complete Checkout to pay)",
         "HARD_BLOCK": "Hard blocked by Gate 1 policy guardrail",
         "QUEUED": "Soft-fail queued — bank rail degraded; will retry safely",
         "CLEARED": "Previously queued intent cleared",

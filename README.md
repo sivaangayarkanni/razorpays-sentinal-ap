@@ -5,12 +5,56 @@
 Built for the **Razorpay Buildathon**.
 
 ```
-AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorpay
+AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorpay Orders + Checkout
                       │                          │
                  HARD_BLOCK                   QUEUED (soft-fail)
                       │                          │
                       └──────── ALLOW / CLEARED ─┘
 ```
+
+## Live demo (Buildathon)
+
+| Surface | URL |
+|---------|-----|
+| **Web UI (Vercel)** | https://sentinel-ap.vercel.app |
+| **API (Render)** | https://sentinel-api-ecw9.onrender.com |
+| **API docs** | https://sentinel-api-ecw9.onrender.com/docs |
+| **Health** | https://sentinel-api-ecw9.onrender.com/health |
+
+**Demo credentials**
+- Admin: `admin@sentinel-ap.local` / `admin123`
+- Agent API key: `sap_demo000000000000000000000000000001`
+
+### Judge demo script (with real Razorpay test Checkout)
+
+1. Open **https://sentinel-ap.vercel.app/playground** — look for the **Test mode · Razorpay** badge.
+2. Click **✓ Successful clearance** → Gate 1 + Gate 2 pass → real Razorpay `order_…` id (not `order_mock_`).
+3. Razorpay Checkout opens automatically. Pay with test card:
+   - Card: `4111 1111 1111 1111`
+   - Expiry: any future date · CVV: any · Name: any
+   - Docs: https://razorpay.com/docs/payments/payments/test-card-details/
+4. On success, playground calls `POST /api/v1/payments/verify` and shows `payment_id` + verified state.
+5. Click **⛔ Hard Block — blacklisted SKU** → `HARD_BLOCK` / `SKU_BLACKLISTED` (unchanged).
+6. Click **⛔ Hard Block — amount cap** → `HARD_BLOCK` / `AMOUNT_CAP_EXCEEDED` (unchanged).
+7. Click **⏸ Soft-Fail Queue** → bank forced to 80%, intent `QUEUED` (enqueue display works without worker).
+8. Click **Restore bank health & clear queue** → manual retry attempts CLEARED when rail recovers.
+9. Open **Dashboard** (admin login) — decision feed + audit trail for `razorpay.order_created` / `razorpay.payment_verified`.
+
+> **Worker note:** Soft-fail enqueue (`QUEUED`) works without the ARQ worker. Automatic background retries need the Render worker service (Starter plan). Manual **Restore & clear** from Playground / Queue admin still clears jobs when bank health recovers. If the worker is suspended for billing, judges can still demo Gate 2 via enqueue + manual retry.
+
+### Razorpay test keys setup
+
+On the API host (Render env — never commit secrets):
+
+```
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_MOCK=false
+```
+
+Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, mock, api_mode }`.
+
+Admin probe: `GET /api/v1/admin/razorpay/status` (JWT) → mode + key prefix + last probe.
 
 ## Architecture
 
@@ -23,6 +67,8 @@ flowchart LR
   G2 -->|degraded &lt;95%| Q[Soft-Fail Queue<br/>Redis + ARQ]
   G2 -->|healthy| RZ[Razorpay Order]
   Q -->|retry when healthy| RZ
+  RZ --> CO[Checkout.js]
+  CO --> V[POST /payments/verify]
   Admin[Admin Dashboard<br/>Next.js] --> API
   API --> PG[(PostgreSQL)]
   API --> RD[(Redis)]
@@ -40,8 +86,8 @@ Pre-flight bank health ping before Razorpay dispatch. Default threshold **>95%**
 razorpays-sentinal-ap/
 ├── backend/                 # Python FastAPI
 │   ├── app/
-│   │   ├── api/             # agent + admin routes
-│   │   ├── core/            # config, db, security
+│   │   ├── api/             # agent + admin + payments routes
+│   │   ├── core/            # config, db, security, rate_limit
 │   │   ├── models/          # SQLAlchemy entities
 │   │   ├── schemas/         # Pydantic
 │   │   ├── services/        # policy, bank health, razorpay, pipeline
@@ -67,52 +113,39 @@ docker compose up --build
 | API docs  | http://localhost:8000/docs   |
 | Health    | http://localhost:8000/health |
 
-**Demo credentials**
-- Admin: `admin@sentinel-ap.local` / `admin123`
-- Agent API key: `sap_demo000000000000000000000000000001`
-
 > Change `JWT_SECRET`, `ADMIN_PASSWORD`, and Razorpay keys before any real deployment. Never commit `.env`.
 
-## 5-minute judge demo script
+## 5-minute local demo script
 
 1. Open **http://localhost:3000** — pitch landing page.
 2. Go to **Demo Playground**.
-3. Click **✓ Successful clearance** → status `ALLOW`, Gate 1 + Gate 2 pass, mock Razorpay `order_id`.
+3. Click **✓ Successful clearance** → status `ALLOW`, Gate 1 + Gate 2 pass, Razorpay `order_id` (mock unless keys set).
 4. Click **⛔ Hard Block — blacklisted SKU** → `HARD_BLOCK` / `SKU_BLACKLISTED`.
 5. Click **⛔ Hard Block — amount cap** → `HARD_BLOCK` / `AMOUNT_CAP_EXCEEDED`.
 6. Click **⏸ Soft-Fail Queue** → bank forced to 80%, intent `QUEUED`.
 7. Click **Restore bank health & clear queue** → job `COMPLETED`, intent `CLEARED`.
 8. Open **Dashboard** (login with admin) — decision feed shows all outcomes.
-9. Open **Bank Health** / **Soft-Fail Queue** / **Policies** to tweak live.
 
 ## API examples
 
 ```bash
 # Successful intent
-curl -s -X POST http://localhost:8000/api/v1/agent/intents \
+curl -s -X POST https://sentinel-api-ecw9.onrender.com/api/v1/agent/intents \
   -H "Content-Type: application/json" \
   -H "X-API-Key: sap_demo000000000000000000000000000001" \
   -d '{"amount_paise":499900,"currency":"INR","sku":"LAPTOP-PRO"}' | jq
 
+# Public Razorpay config (safe for frontend)
+curl -s https://sentinel-api-ecw9.onrender.com/api/v1/public/config | jq
+
 # Hard block (blacklist)
-curl -s -X POST http://localhost:8000/api/v1/agent/intents \
+curl -s -X POST https://sentinel-api-ecw9.onrender.com/api/v1/agent/intents \
   -H "Content-Type: application/json" \
   -H "X-API-Key: sap_demo000000000000000000000000000001" \
   -d '{"amount_paise":50000,"currency":"INR","sku":"WEAPON"}' | jq
-
-# Admin login
-TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/admin/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@sentinel-ap.local","password":"admin123"}' | jq -r .access_token)
-
-# Degrade bank rail for soft-fail demo
-curl -s -X POST http://localhost:8000/api/v1/admin/bank-health/config \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"mock_success_rate":0.80,"threshold":0.95}' | jq
 ```
 
-Amounts are always in **paise** (INR × 100).
+Amounts are always in **paise** (INR × 100). Agent intents are lightly rate-limited (in-memory sliding window).
 
 ## Local dev (without full compose)
 
@@ -142,22 +175,6 @@ cd backend && pip install -r requirements.txt && pytest -q
 ```
 
 Covers Gate 1 policy engine + Gate 2 bank health threshold gating.
-
-## Razorpay keys
-
-Set in `.env`:
-
-```
-RAZORPAY_KEY_ID=rzp_test_...
-RAZORPAY_KEY_SECRET=...
-RAZORPAY_MOCK=false
-```
-
-Leave empty / `RAZORPAY_MOCK=true` for offline judge demos (deterministic mock orders).
-
-## Optional CI
-
-Copy `docs/github-actions-ci.yml.example` to `.github/workflows/ci.yml` if your GitHub token has the `workflow` scope.
 
 ## License
 

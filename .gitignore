@@ -17,3 +17,8 @@ pgdata/
 *.log
 coverage/
 .coverage
+
+.env.production
+.env.local
+frontend/.env.local
+frontend/.env.production
