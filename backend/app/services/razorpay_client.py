@@ -1,12 +1,22 @@
-"""Razorpay payment integration (mock + live test/live keys). Amounts always in paise."""
+"""Razorpay payment integration (mock + live test/live keys). Amounts always in paise.
+
+Uses httpx + HMAC so we do not depend on the razorpay SDK's pkg_resources import
+(broken on newer setuptools / slim Python images).
+"""
 from __future__ import annotations
 
+import hashlib
+import hmac
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import httpx
+
 from app.core.config import get_settings
+
+RAZORPAY_API = "https://api.razorpay.com/v1"
 
 
 @dataclass
@@ -36,19 +46,11 @@ class RazorpayStatus:
     last_probe_detail: Optional[str] = None
 
 
-# Module-level last probe (in-memory; resets on deploy)
 _last_probe: dict[str, Any] = {
     "at": None,
     "ok": None,
     "detail": None,
 }
-
-
-def _sdk_client():
-    import razorpay
-
-    settings = get_settings()
-    return razorpay.Client(auth=(settings.razorpay_key_id, settings.razorpay_key_secret))
 
 
 def api_mode_from_key(key_id: str) -> str:
@@ -66,6 +68,17 @@ def is_mock_mode() -> bool:
     return bool(settings.razorpay_mock or not settings.razorpay_key_id or not settings.razorpay_key_secret)
 
 
+def _auth() -> tuple[str, str]:
+    settings = get_settings()
+    return settings.razorpay_key_id, settings.razorpay_key_secret
+
+
+def _record_probe(ok: bool, detail: str) -> None:
+    _last_probe["at"] = datetime.now(timezone.utc).isoformat()
+    _last_probe["ok"] = ok
+    _last_probe["detail"] = detail[:200]
+
+
 class RazorpayClient:
     async def create_order(
         self,
@@ -75,7 +88,6 @@ class RazorpayClient:
         receipt: str,
         notes: dict[str, Any] | None = None,
     ) -> OrderResult:
-        settings = get_settings()
         if is_mock_mode():
             order_id = f"order_mock_{uuid.uuid4().hex[:16]}"
             payment_id = f"pay_mock_{uuid.uuid4().hex[:16]}"
@@ -95,24 +107,33 @@ class RazorpayClient:
                 },
             )
 
+        payload = {
+            "amount": int(amount_paise),
+            "currency": currency,
+            "receipt": receipt[:40],
+            "notes": notes or {},
+            "payment_capture": 1,
+        }
         try:
-            client = _sdk_client()
-            order = client.order.create(
-                {
-                    "amount": int(amount_paise),
-                    "currency": currency,
-                    "receipt": receipt[:40],
-                    "notes": notes or {},
-                    "payment_capture": 1,
-                }
-            )
-            _record_probe(True, f"create_order ok id={order.get('id')}")
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    f"{RAZORPAY_API}/orders",
+                    json=payload,
+                    auth=_auth(),
+                )
+            data = resp.json() if resp.content else {}
+            if resp.status_code >= 400:
+                err = (data.get("error") or {}).get("description") or resp.text[:200]
+                _record_probe(False, f"create_order http={resp.status_code}: {err}")
+                return OrderResult(success=False, error=err, mock=False, raw=data if isinstance(data, dict) else None)
+            order_id = data.get("id")
+            _record_probe(True, f"create_order ok id={order_id}")
             return OrderResult(
                 success=True,
-                order_id=order.get("id"),
-                payment_id=None,  # set after Checkout + verify
+                order_id=order_id,
+                payment_id=None,
                 mock=False,
-                raw=order,
+                raw=data,
             )
         except Exception as exc:  # noqa: BLE001
             _record_probe(False, f"create_order error: {exc}")
@@ -125,17 +146,28 @@ class RazorpayClient:
         payment_id: str,
         signature: str,
     ) -> VerifyResult:
-        """Verify Razorpay Checkout success callback signature."""
+        """Verify Razorpay Checkout success callback signature (HMAC-SHA256)."""
         if is_mock_mode():
-            # Accept mock signatures in demo mode
             if order_id.startswith("order_mock_") and payment_id.startswith("pay_mock_"):
                 return VerifyResult(success=True)
             if signature == "mock_signature":
                 return VerifyResult(success=True)
             return VerifyResult(success=False, error="Invalid mock signature")
 
+        settings = get_settings()
+        message = f"{order_id}|{payment_id}".encode()
+        expected = hmac.new(
+            settings.razorpay_key_secret.encode(),
+            message,
+            hashlib.sha256,
+        ).hexdigest()
+        if hmac.compare_digest(expected, signature):
+            return VerifyResult(success=True)
+        # Also try razorpay utility if available (optional)
         try:
-            client = _sdk_client()
+            import razorpay
+
+            client = razorpay.Client(auth=(settings.razorpay_key_id, settings.razorpay_key_secret))
             client.utility.verify_payment_signature(
                 {
                     "razorpay_order_id": order_id,
@@ -144,22 +176,24 @@ class RazorpayClient:
                 }
             )
             return VerifyResult(success=True)
-        except Exception as exc:  # noqa: BLE001
-            return VerifyResult(success=False, error=str(exc))
+        except Exception:
+            pass
+        return VerifyResult(success=False, error="Invalid payment signature")
 
-    def fetch_order(self, order_id: str) -> dict[str, Any]:
+    async def fetch_order(self, order_id: str) -> dict[str, Any]:
         """Fetch order status from Razorpay (or mock stub)."""
         if is_mock_mode() or order_id.startswith("order_mock_"):
-            return {
-                "id": order_id,
-                "status": "created",
-                "mock": True,
-            }
+            return {"id": order_id, "status": "created", "mock": True}
         try:
-            client = _sdk_client()
-            order = client.order.fetch(order_id)
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{RAZORPAY_API}/orders/{order_id}", auth=_auth())
+            data = resp.json() if resp.content else {}
+            if resp.status_code >= 400:
+                err = (data.get("error") or {}).get("description") or resp.text[:200]
+                _record_probe(False, f"fetch_order error: {err}")
+                raise RuntimeError(err)
             _record_probe(True, f"fetch_order ok id={order_id}")
-            return dict(order) if not isinstance(order, dict) else order
+            return data if isinstance(data, dict) else {"raw": data}
         except Exception as exc:  # noqa: BLE001
             _record_probe(False, f"fetch_order error: {exc}")
             raise
@@ -168,13 +202,9 @@ class RazorpayClient:
         settings = get_settings()
         mock = is_mock_mode()
         key = settings.razorpay_key_id or ""
-        if mock:
-            mode = "mock"
-        else:
-            mode = api_mode_from_key(key)
+        mode = "mock" if mock else api_mode_from_key(key)
         prefix = ""
         if key:
-            # Show short prefix only — never full key
             prefix = key[:12] + "…" if len(key) > 12 else key[:8] + "…"
         return RazorpayStatus(
             mode=mode,
@@ -185,12 +215,6 @@ class RazorpayClient:
             last_probe_ok=_last_probe.get("ok"),
             last_probe_detail=_last_probe.get("detail"),
         )
-
-
-def _record_probe(ok: bool, detail: str) -> None:
-    _last_probe["at"] = datetime.now(timezone.utc).isoformat()
-    _last_probe["ok"] = ok
-    _last_probe["detail"] = detail[:200]
 
 
 razorpay_client = RazorpayClient()
