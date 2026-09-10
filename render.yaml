@@ -1,0 +1,105 @@
+# Sentinel-AP — Render Blueprint
+# Web API + ARQ worker + Postgres + Redis-compatible Key Value
+
+databases:
+  - name: sentinel-db
+    plan: basic-256mb
+    databaseName: sentinel_ap
+    user: sentinel
+    postgresMajorVersion: "16"
+
+services:
+  - type: keyvalue
+    name: sentinel-redis
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList: []  # private only
+
+  - type: web
+    name: sentinel-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: RAZORPAY_MOCK
+        value: "true"
+      - key: BANK_HEALTH_THRESHOLD
+        value: "0.95"
+      - key: BANK_HEALTH_MOCK_SUCCESS_RATE
+        value: "0.98"
+      - key: ADMIN_EMAIL
+        value: admin@sentinel-ap.local
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://sentinel-ap.vercel.app,https://sentinel-ap-varnam1976-1358s-projects.vercel.app
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sentinel-db
+          property: connectionString
+      - key: DATABASE_URL_SYNC
+        fromDatabase:
+          name: sentinel-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: sentinel-redis
+          type: keyvalue
+          property: connectionString
+
+  - type: worker
+    name: sentinel-worker
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: arq app.workers.tasks.WorkerSettings
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: RAZORPAY_MOCK
+        value: "true"
+      - key: BANK_HEALTH_THRESHOLD
+        value: "0.95"
+      - key: BANK_HEALTH_MOCK_SUCCESS_RATE
+        value: "0.98"
+      - key: JWT_SECRET
+        fromService:
+          name: sentinel-api
+          type: web
+          envVarKey: JWT_SECRET
+      - key: ADMIN_EMAIL
+        value: admin@sentinel-ap.local
+      - key: ADMIN_PASSWORD
+        fromService:
+          name: sentinel-api
+          type: web
+          envVarKey: ADMIN_PASSWORD
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sentinel-db
+          property: connectionString
+      - key: DATABASE_URL_SYNC
+        fromDatabase:
+          name: sentinel-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: sentinel-redis
+          type: keyvalue
+          property: connectionString

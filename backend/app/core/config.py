@@ -37,6 +37,24 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:3001"
 
+    def model_post_init(self, __context) -> None:
+        """Normalize Render/Heroku-style postgres URLs for asyncpg + sync drivers."""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[len("postgres://") :]
+        if url.startswith("postgresql://") and "+asyncpg" not in url:
+            object.__setattr__(self, "database_url", url.replace("postgresql://", "postgresql+asyncpg://", 1))
+        sync = self.database_url_sync
+        if sync.startswith("postgres://"):
+            object.__setattr__(self, "database_url_sync", "postgresql://" + sync[len("postgres://") :])
+        # If sync not set separately and async was rewritten, keep sync without asyncpg
+        if self.database_url_sync.startswith("postgresql+asyncpg://"):
+            object.__setattr__(
+                self,
+                "database_url_sync",
+                self.database_url_sync.replace("postgresql+asyncpg://", "postgresql://", 1),
+            )
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
