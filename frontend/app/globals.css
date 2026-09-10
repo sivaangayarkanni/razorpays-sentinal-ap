@@ -6,38 +6,177 @@
   color-scheme: dark;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   @apply bg-ink text-slate-100 antialiased min-h-screen;
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(51, 159, 255, 0.18), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(99, 102, 241, 0.12), transparent);
+    radial-gradient(ellipse 90% 55% at 50% -25%, rgba(37, 99, 235, 0.16), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 0% 20%, rgba(30, 58, 138, 0.2), transparent 45%);
+  background-attachment: fixed;
 }
 
-.glass {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+::selection {
+  @apply bg-sentinel-600/40 text-white;
 }
 
-.badge {
-  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
+:focus-visible {
+  outline: 2px solid rgb(96 165 250);
+  outline-offset: 2px;
 }
 
-.badge-allow { @apply bg-emerald-500/15 text-emerald-300 border border-emerald-500/30; }
-.badge-block { @apply bg-rose-500/15 text-rose-300 border border-rose-500/30; }
-.badge-queue { @apply bg-amber-500/15 text-amber-300 border border-amber-500/30; }
-.badge-clear { @apply bg-sky-500/15 text-sky-300 border border-sky-500/30; }
-.badge-fail { @apply bg-slate-500/15 text-slate-300 border border-slate-500/30; }
+@layer components {
+  .glass {
+    @apply rounded-2xl backdrop-blur-xl shadow-card;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(15, 23, 42, 0.55);
+  }
 
-.btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
-    focus:outline-none focus:ring-2 focus:ring-sentinel-400/50 disabled:opacity-50;
+  .glass-strong {
+    @apply rounded-2xl backdrop-blur-2xl shadow-card;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(2, 6, 23, 0.7);
+  }
+
+  .panel {
+    @apply glass p-5 md:p-6;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold uppercase tracking-wider;
+    font-size: 11px;
+  }
+
+  .badge-allow {
+    @apply border-emerald-500/30 bg-emerald-500/10 text-emerald-300;
+  }
+  .badge-block {
+    @apply border-rose-500/30 bg-rose-500/10 text-rose-300;
+  }
+  .badge-queue {
+    @apply border-amber-500/30 bg-amber-500/10 text-amber-300;
+  }
+  .badge-clear {
+    @apply border-sky-500/30 bg-sky-500/10 text-sky-300;
+  }
+  .badge-fail {
+    @apply border-slate-500/30 bg-slate-500/10 text-slate-300;
+  }
+  .badge-neutral {
+    @apply border-white/10 bg-white/5 text-slate-300;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-150;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-sentinel-400/60;
+    @apply focus-visible:ring-offset-2 focus-visible:ring-offset-ink;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-sentinel-600 text-white shadow-glow hover:bg-sentinel-500 active:bg-sentinel-700;
+  }
+
+  .btn-secondary {
+    @apply btn text-slate-100 hover:border-white/20;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-ghost {
+    @apply btn border border-white/10 bg-transparent text-slate-300 hover:text-white;
+  }
+  .btn-ghost:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .btn-danger {
+    @apply btn border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-white/10 px-3.5 py-2.5 text-sm text-slate-100;
+    @apply placeholder:text-slate-500 transition;
+    @apply focus:outline-none focus:border-sentinel-500/50 focus:ring-2 focus:ring-sentinel-500/25;
+    background-color: rgba(0, 0, 0, 0.35);
+  }
+
+  .textarea {
+    @apply input resize-y;
+    min-height: 88px;
+  }
+
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wider text-slate-400;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded-xl animate-shimmer;
+    background-color: rgba(255, 255, 255, 0.06);
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.06),
+      transparent
+    );
+    background-size: 200% 100%;
+  }
+
+  .table-wrap {
+    @apply overflow-x-auto rounded-xl;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .table {
+    @apply w-full text-left text-sm;
+    min-width: 640px;
+  }
+
+  .table th {
+    @apply border-b px-4 py-3 font-semibold uppercase tracking-wider text-slate-400;
+    border-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.03);
+    font-size: 11px;
+  }
+
+  .table td {
+    @apply border-b px-4 py-3 align-middle text-slate-200;
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .table tbody tr {
+    @apply transition;
+  }
+  .table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-300;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  .page-enter {
+    @apply animate-fade-up;
+  }
 }
-.btn-primary {
-  @apply btn bg-gradient-to-r from-sentinel-600 to-indigo-600 text-white shadow-glow hover:brightness-110;
+
+input[type="range"] {
+  @apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10;
 }
-.btn-ghost {
-  @apply btn bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200;
+input[type="range"]::-webkit-slider-thumb {
+  @apply h-4 w-4 appearance-none rounded-full bg-sentinel-400 shadow-glow;
 }
-.input {
-  @apply w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 text-sm
-    placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sentinel-500/40;
+input[type="range"]::-moz-range-thumb {
+  @apply h-4 w-4 rounded-full border-0 bg-sentinel-400;
 }
