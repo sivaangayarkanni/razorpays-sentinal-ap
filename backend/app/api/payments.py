@@ -15,6 +15,7 @@ from app.api.deps import AdminDep, DbSession, get_agent_from_api_key
 from app.core.security import decode_access_token
 from app.models.entities import Decision, DecisionOutcome, Intent
 from app.services.audit import write_audit
+from app.services.intent_fsm import InvalidTransition, mark_payment_verified
 from app.services.razorpay_client import api_mode_from_key, is_mock_mode, razorpay_client
 from app.core.config import get_settings
 
@@ -141,19 +142,26 @@ async def verify_payment(
         await db.flush()
         raise HTTPException(status_code=400, detail=result.error or "Signature verification failed")
 
+    try:
+        mark_payment_verified(intent, via="checkout_verify")
+    except InvalidTransition as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     intent.razorpay_order_id = body.razorpay_order_id
     intent.razorpay_payment_id = body.razorpay_payment_id
+    # Persist ALLOW/CLEARED unchanged; decision trail records VERIFIED
     db.add(
         Decision(
             intent_id=intent.id,
             gate="razorpay",
-            outcome=DecisionOutcome.ALLOW,
+            outcome=intent.status if intent.status in (DecisionOutcome.ALLOW, DecisionOutcome.CLEARED) else DecisionOutcome.ALLOW,
             reason_code="PAYMENT_VERIFIED",
-            reason_message="Checkout signature verified; payment captured",
+            reason_message="Checkout signature verified; payment captured (FSM: VERIFIED)",
             details={
                 "razorpay_order_id": body.razorpay_order_id,
                 "razorpay_payment_id": body.razorpay_payment_id,
                 "verified_at": datetime.now(timezone.utc).isoformat(),
+                "fsm_state": "VERIFIED",
             },
         )
     )

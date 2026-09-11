@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.middleware.request_id import get_request_id
 from app.models.entities import Decision, DecisionOutcome, Intent
 from app.services.audit import write_audit
+from app.services.intent_fsm import InvalidTransition, mark_payment_verified
 
 logger = logging.getLogger("sentinel-ap.webhooks")
 
@@ -117,11 +118,18 @@ async def razorpay_webhook(
     if payment_id:
         intent.razorpay_payment_id = payment_id
 
+    try:
+        mark_payment_verified(intent, via="webhook_payment_captured")
+        fsm_state = "VERIFIED"
+    except InvalidTransition:
+        # Intent may still be QUEUED/FAILED; record capture without forcing FSM
+        fsm_state = intent.status.value if hasattr(intent.status, "value") else str(intent.status)
+
     db.add(
         Decision(
             intent_id=intent.id,
             gate="razorpay",
-            outcome=DecisionOutcome.ALLOW,
+            outcome=intent.status if intent.status in (DecisionOutcome.ALLOW, DecisionOutcome.CLEARED) else DecisionOutcome.ALLOW,
             reason_code="WEBHOOK_PAYMENT_CAPTURED",
             reason_message="payment.captured webhook received",
             details={
@@ -131,6 +139,7 @@ async def razorpay_webhook(
                 "event": event,
                 "request_id": request_id,
                 "received_at": datetime.now(timezone.utc).isoformat(),
+                "fsm_state": fsm_state,
             },
         )
     )

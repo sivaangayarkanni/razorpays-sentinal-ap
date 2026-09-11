@@ -64,11 +64,15 @@ RAZORPAY_MOCK=false
 
 Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, mock, api_mode }`.
 
-**v1.2 production features**
+**v1.3 system-design features**
 - `Idempotency-Key` on `POST /api/v1/agent/intents` (duplicate → same intent)
 - `X-Request-Id` on every response
 - `POST /api/v1/webhooks/razorpay` (`payment.captured`; optional `RAZORPAY_WEBHOOK_SECRET`)
 - `GET /api/v1/public/metrics` — intents by status, blocks, queue depth
+- Intent FSM (`services/intent_fsm.py`) · domain `PolicyDecision` / `HealthDecision` / `PaymentDispatch`
+- Bank health TTL cache + circuit breaker · `POST /admin/queue/drain` outbox pump
+- `GET /api/v1/public/architecture` + `GET /api/v1/admin/system`
+- Structured JSON logs (`request_id`, `intent_id`, `gate`, `outcome`)
 - Pitch deck on landing `#pitch` · docs in `docs/ARCHITECTURE.md` + `docs/INTERNSHIP.md`
 - **One-page pitch PDF:** [`docs/Sentinel-AP-Pitch-One-Pager.pdf`](docs/Sentinel-AP-Pitch-One-Pager.pdf) (HTML source: [`docs/pitch-one-pager.html`](docs/pitch-one-pager.html))
 - **Demo recording script (~3–5 min):** [`docs/DEMO_RECORDING_SCRIPT.md`](docs/DEMO_RECORDING_SCRIPT.md)
@@ -77,6 +81,11 @@ Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, m
 Admin probe: `GET /api/v1/admin/razorpay/status` (JWT) → mode + key prefix + last probe.
 
 ## Architecture
+
+### System design (v1.3)
+
+Sentinel-AP is structured as five planes — **Ingress**, **Control** (Gate 1 Policy + Gate 2 Bank Health + Intent FSM), **Execution** (Razorpay Orders / verify / webhooks), **Reliability** (durable soft-fail queue + drain), and **Observability** (audit, metrics, structured logs). Full write-up + sequence diagrams: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Live JSON diagram: `GET /api/v1/public/architecture`.
+
 
 ```mermaid
 flowchart LR
@@ -110,7 +119,8 @@ razorpays-sentinal-ap/
 │   │   ├── core/            # config, db, security, rate_limit
 │   │   ├── models/          # SQLAlchemy entities
 │   │   ├── schemas/         # Pydantic
-│   │   ├── services/        # policy, bank health, razorpay, pipeline
+│   │   ├── domain/          # typed decisions + architecture diagram
+│   │   ├── services/        # policy, FSM, bank health, razorpay, pipeline
 │   │   └── workers/         # ARQ soft-fail worker
 │   ├── alembic/
 │   └── tests/

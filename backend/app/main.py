@@ -20,7 +20,7 @@ from app.seed import seed_demo_data
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sentinel-ap")
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.3.0"
 
 
 @asynccontextmanager
@@ -56,6 +56,8 @@ def create_app() -> FastAPI:
             "**Gate 1:** Policy Hard Block (deterministic budgets / SKU lists)\n\n"
             "**Gate 2:** Bank Health Soft-Fail Queue\n\n"
             "**Payments:** Live Razorpay test-mode Orders + Checkout verify + webhooks\n\n"
+            "**v1.3:** layered planes, Intent FSM, health cache/circuit breaker, "
+            "durable queue drain, structured logs, public architecture diagram.\n\n"
             "Supports `Idempotency-Key` on agent intents and `X-Request-Id` on all responses."
         ),
         version=APP_VERSION,

@@ -42,7 +42,9 @@ from app.schemas.api import (
 )
 from app.services.audit import write_audit
 from app.services.bank_health import bank_health_service
-from app.services.gate_pipeline import retry_queued_job
+from app.domain.architecture import architecture_diagram
+from app.services.gate_pipeline import drain_due_jobs, retry_queued_job
+from app.services.intent_fsm import fsm_diagram
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -240,6 +242,48 @@ async def manual_retry(job_id: UUID, admin: AdminDep, db: DbSession) -> QueueJob
     )
 
 
+
+
+@router.post("/queue/drain")
+async def drain_queue(
+    admin: AdminDep,
+    db: DbSession,
+    limit: int = Query(20, ge=1, le=100),
+) -> dict:
+    """Process due soft-fail jobs (outbox drain). Works without ARQ worker."""
+    results = await drain_due_jobs(db, limit=limit)
+    await write_audit(
+        db,
+        actor=f"admin:{admin['sub']}",
+        action="queue.drain",
+        resource_type="queue",
+        payload={"processed": len(results), "limit": limit},
+    )
+    await db.flush()
+    return {
+        "processed": len(results),
+        "jobs": [
+            {
+                "id": str(j.id),
+                "intent_id": str(j.intent_id),
+                "status": j.status.value if hasattr(j.status, "value") else str(j.status),
+                "attempts": j.attempts,
+                "last_error": j.last_error,
+            }
+            for j in results
+        ],
+    }
+
+
+@router.get("/system")
+async def admin_system(_: AdminDep) -> dict:
+    """Admin view of architecture planes + FSM + circuit breaker (no secrets)."""
+    diagram = architecture_diagram(version="1.3.0")
+    diagram["intent_fsm_runtime"] = fsm_diagram()
+    diagram["bank_health"] = bank_health_service.circuit_status()
+    diagram["planes_summary"] = [p["name"] for p in diagram["planes"]]
+    return diagram
+
 @router.get("/bank-health", response_model=BankHealthOut)
 async def get_bank_health(_: AdminDep, db: DbSession) -> BankHealthOut:
     health = await bank_health_service.check()
@@ -291,6 +335,7 @@ async def configure_bank_health(body: BankHealthConfigUpdate, admin: AdminDep, d
     if body.mock_success_rate is not None:
         bank_health_service.set_mock_success_rate(body.mock_success_rate)
         settings.bank_health_mock_success_rate = body.mock_success_rate
+    bank_health_service.invalidate_cache()
     if body.threshold is not None:
         settings.bank_health_threshold = body.threshold
         org = (await db.execute(select(Organization).limit(1))).scalar_one_or_none()

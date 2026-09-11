@@ -1,4 +1,4 @@
-# Sentinel-AP Architecture
+# Sentinel-AP Architecture (v1.3)
 
 ## Purpose
 
@@ -6,38 +6,52 @@ Sentinel-AP is a **payment control plane** between autonomous AI buyer agents an
 Agents never talk to Razorpay directly. Every spend intent is evaluated by two gates, then
 (optionally) turned into a Razorpay Order + Checkout flow with signature verify and webhooks.
 
-## High-level flow
+## Layered planes
+
+| Plane | Responsibility | Code |
+|-------|----------------|------|
+| **Ingress** | Auth (`X-API-Key`), rate limit, `Idempotency-Key`, `X-Request-Id` | `api/agent.py`, `core/rate_limit.py`, `middleware/request_id.py` |
+| **Control plane** | Gate 1 Policy + Gate 2 Bank Health + Intent FSM | `services/policy_engine.py`, `bank_health.py`, `intent_fsm.py`, `gate_pipeline.py` |
+| **Execution plane** | Razorpay Orders / Checkout verify / webhooks | `services/razorpay_client.py`, `api/payments.py`, `api/webhooks.py` |
+| **Reliability plane** | Soft-fail `QueueJob` outbox (`next_retry_at`, attempts FSM), ARQ worker + admin drain | `gate_pipeline.drain_due_jobs`, `workers/tasks.py`, `POST /admin/queue/drain` |
+| **Observability** | Audit events, decision trail, metrics, structured JSON logs | `services/audit.py`, `api/metrics.py`, `core/logging_utils.py` |
+
+Public JSON diagram: `GET /api/v1/public/architecture` (also `GET /api/v1/admin/system`).
+
+## Intent state machine
+
+Enforced in **`services/intent_fsm.py`** (single source of truth):
 
 ```
-AI Buyer Agent
-   │  POST /api/v1/agent/intents
-   │  Headers: X-API-Key, Idempotency-Key?, X-Request-Id?
-   ▼
-┌──────────────────────────────────────────────────────────┐
-│ Sentinel-AP (FastAPI)                                    │
-│  1. Rate limit + auth (API key → Agent + Org)             │
-│  2. Idempotency lookup (return same intent if key exists)│
-│  3. Gate 1 — Policy Engine (HARD_BLOCK | PASS)           │
-│  4. Gate 2 — Bank Health (QUEUED | PASS)                 │
-│  5. Razorpay Orders API (ALLOW + order_id)               │
-│  6. Audit events + decision trail                        │
-└──────────────────────────────────────────────────────────┘
+PENDING ──► HARD_BLOCK          (Gate 1 fail — terminal)
    │
-   ├─ HARD_BLOCK → stop (no money movement)
-   ├─ QUEUED → Soft-Fail Queue (Redis/ARQ + manual retry)
-   └─ ALLOW → Checkout.js → POST /payments/verify
-              └─ webhook payment.captured (optional)
+   ├──► QUEUED ──► CLEARED      (Gate 2 degraded → retry success)
+   │         └──► FAILED        (queue exhausted)
+   │
+   ├──► ALLOW ──► VERIFIED      (Checkout verify / webhook — logical)
+   │
+   └──► FAILED                  (Razorpay order error)
 ```
 
-## Components
+**API compatibility:** public status values remain `ALLOW | HARD_BLOCK | QUEUED | CLEARED | FAILED`.
+`PENDING` is transient (pre-gate). `VERIFIED` is logical — persisted status stays `ALLOW`/`CLEARED`
+with decision `reason_code=PAYMENT_VERIFIED`.
 
-| Layer | Tech | Role |
-|-------|------|------|
-| API | FastAPI 1.2.x | Intent pipeline, admin, payments, webhooks, metrics |
-| DB | PostgreSQL | Orgs, agents, policies, intents, decisions, queue, audit, idempotency |
-| Cache / queue | Redis + ARQ | Soft-fail retries (worker optional on Render Starter) |
-| Payments | Razorpay Orders + Checkout | Amounts in **paise**; test keys in Render |
-| Web | Next.js 14 | Landing + pitch deck, playground, dashboard |
+### Domain results (typed)
+
+Pipeline orchestrates only; gates return frozen dataclasses:
+
+- `PolicyDecision` — Gate 1
+- `HealthDecision` — Gate 2
+- `PaymentDispatch` — execution plane
+
+See `app/domain/decisions.py`.
+
+## Unit of work
+
+Request-scoped SQLAlchemy session (`get_db`) commits once at the end of the request.
+Gate decisions + intent status + queue job + audit rows for one intent path share that
+transaction (flush mid-pipeline; commit on success / rollback on exception).
 
 ## Gate 1 — Policy (deterministic Hard Block)
 
@@ -52,33 +66,127 @@ Outcomes are **deterministic** — same inputs → same reason codes (`AMOUNT_CA
 ## Gate 2 — Bank health (Soft-Fail Queue)
 
 - Pre-flight success-rate check vs org threshold (default 95%)
-- Degraded → `QUEUED` + `QueueJob` (no Razorpay call)
-- Recovered → worker or admin manual retry → Order → `CLEARED`
+- **TTL cache** (~5s) to avoid hammering Razorpay on every intent
+- **Circuit breaker**: after N consecutive probe failures, circuit opens ~30s and returns degraded
+- Degraded → `QUEUED` + durable `QueueJob` (no Razorpay call)
+- Recovered → worker / `POST /admin/queue/drain` / manual retry → Order → `CLEARED`
 
-## Razorpay integration
+### Failure modes
 
-1. `create_order` (httpx + Basic auth) when Gate 2 passes
-2. Frontend Checkout.js with public `key_id` from `GET /api/v1/public/config`
-3. `POST /api/v1/payments/verify` — HMAC of `order_id|payment_id`
-4. `POST /api/v1/webhooks/razorpay` — `payment.captured` updates `payment_id`  
-   (`RAZORPAY_WEBHOOK_SECRET` optional; if unset, verify skipped with warning log)
+1. Forced demo override — immediate, bypasses cache  
+2. Cache HIT — reuse last probe within TTL  
+3. Circuit OPEN — skip live HTTP; treat as degraded  
+4. Live 5xx / network error — count toward circuit; low success rate  
+5. Live 2xx/4xx — rail reachable; ~0.99 success rate  
+
+## Sequence diagrams
+
+### Agent happy path (ALLOW → Checkout)
+
+```mermaid
+sequenceDiagram
+  participant Agent as AI Buyer Agent
+  participant API as Sentinel-AP
+  participant G1 as Gate 1 Policy
+  participant G2 as Gate 2 Bank Health
+  participant RZ as Razorpay
+  participant FE as Checkout.js
+
+  Agent->>API: POST /agent/intents (X-API-Key, Idempotency-Key?)
+  API->>API: rate limit + auth + request_id
+  API->>G1: evaluate policy
+  G1-->>API: POLICY_PASS
+  API->>G2: health check (cache/circuit)
+  G2-->>API: BANK_HEALTHY
+  API->>RZ: create Order
+  RZ-->>API: order_id
+  API-->>Agent: ALLOW + order_id
+  Agent->>FE: open Checkout
+  FE->>API: POST /payments/verify
+  API-->>FE: PAYMENT_VERIFIED (status ALLOW)
+```
+
+### Hard block
+
+```mermaid
+sequenceDiagram
+  participant Agent as AI Buyer Agent
+  participant API as Sentinel-AP
+  participant G1 as Gate 1 Policy
+
+  Agent->>API: POST /agent/intents (blacklisted SKU / over cap)
+  API->>G1: evaluate
+  G1-->>API: HARD_BLOCK + reason_code
+  Note over API: No Razorpay call; audit + decision written
+  API-->>Agent: HARD_BLOCK
+```
+
+### Soft-fail retry
+
+```mermaid
+sequenceDiagram
+  participant Agent as AI Buyer Agent
+  participant API as Sentinel-AP
+  participant G2 as Gate 2
+  participant Q as QueueJob outbox
+  participant W as Worker / admin drain
+  participant RZ as Razorpay
+
+  Agent->>API: POST /agent/intents
+  API->>G2: health check
+  G2-->>API: BANK_DEGRADED
+  API->>Q: enqueue PENDING + next_retry_at
+  API-->>Agent: QUEUED
+  W->>API: drain / retry
+  API->>G2: re-check health
+  G2-->>API: BANK_HEALTHY
+  API->>RZ: create Order
+  API->>Q: COMPLETED
+  Note over API: Intent CLEARED
+```
+
+### Checkout + webhook
+
+```mermaid
+sequenceDiagram
+  participant FE as Checkout.js
+  participant API as Sentinel-AP
+  participant RZ as Razorpay
+
+  FE->>API: POST /payments/verify (HMAC signature)
+  API->>API: FSM ALLOW→VERIFIED (status stays ALLOW)
+  API-->>FE: success + payment_id
+  RZ->>API: POST /webhooks/razorpay payment.captured
+  API->>API: idempotent payment_id + decision trail
+```
+
+## Components
+
+| Layer | Tech | Role |
+|-------|------|------|
+| API | FastAPI 1.3.x | Intent pipeline, admin, payments, webhooks, metrics, architecture |
+| DB | PostgreSQL | Orgs, agents, policies, intents, decisions, queue, audit, idempotency |
+| Cache / queue | Redis + ARQ | Soft-fail retries (worker optional; DB outbox + drain always works) |
+| Payments | Razorpay Orders + Checkout | Amounts in **paise**; test keys in Render |
+| Web | Next.js 14 | Landing + pitch deck, playground, dashboard |
 
 ## Cross-cutting
 
 - **Idempotency-Key** → `idempotency_records` unique on `(agent_id, key)`
-- **X-Request-Id** middleware — echoed on every response; stored in intent metadata / audit when useful
-- **Metrics** — `GET /api/v1/public/metrics` (intents by status, blocks, queue depth)
+- **X-Request-Id** middleware — echoed on every response; stored in intent metadata / audit
+- **Structured logs** — JSON with `request_id`, `intent_id`, `gate`, `outcome`, `reason_code`
+- **Metrics** — `GET /api/v1/public/metrics`
 - **Errors** — consistent JSON `{ error, message, status_code, request_id }`
 
 ## Trust boundaries
 
 - Agent API key never reaches Razorpay
 - Razorpay secret never reaches the browser (only `key_id`)
-- Admin JWT for dashboard / bank simulation / queue retry
+- Admin JWT for dashboard / bank simulation / queue retry / drain
 - Demo credentials are intentional for Buildathon judges
 
 ## Deploy topology
 
 - **API**: Render Docker (`sentinel-api-ecw9.onrender.com`)
 - **Web**: Vercel (`sentinel-ap.vercel.app`) with `NEXT_PUBLIC_API_URL`
-- **Worker**: Render ARQ worker (may be suspended on free/billing plans — enqueue + manual clear still demoable)
+- **Worker**: Render ARQ worker (may be suspended — enqueue + manual clear / drain still demoable)
