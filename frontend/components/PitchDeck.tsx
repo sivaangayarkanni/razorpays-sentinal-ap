@@ -51,8 +51,8 @@ const SLIDES = [
     title: "How it works",
     subtitle: "Intent → Gates → Rail",
     icon: Layers,
-    accent: "from-sky-500/20 to-transparent border-sky-500/25",
-    iconCls: "text-sky-300 bg-sky-500/10 ring-sky-500/30",
+    accent: "from-teal-500/20 to-transparent border-teal-500/25",
+    iconCls: "text-teal-300 bg-teal-500/10 ring-teal-500/30",
     bullets: [
       "POST /api/v1/agent/intents with X-API-Key",
       "Idempotency-Key + X-Request-Id for safe retries",

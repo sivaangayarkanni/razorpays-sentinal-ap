@@ -14,6 +14,7 @@ import {
 import { Nav } from "@/components/Nav";
 import { PitchDeck } from "@/components/PitchDeck";
 import { SystemStatus } from "@/components/SystemStatus";
+import { GuideAgents, SectionCoach } from "@/components/GuideAgents";
 
 const TRUST = [
   "FastAPI · OpenAPI",
@@ -32,6 +33,7 @@ const GATES = [
     icon: Ban,
     accent: "border-rose-500/25 from-rose-500/15 via-transparent to-transparent",
     iconCls: "text-rose-300 bg-rose-500/10 ring-rose-500/25",
+    coach: "scout" as const,
     points: [
       "Deterministic budget caps (per-txn + daily)",
       "SKU whitelist / blacklist enforcement",
@@ -45,6 +47,7 @@ const GATES = [
     icon: Gauge,
     accent: "border-amber-500/25 from-amber-500/15 via-transparent to-transparent",
     iconCls: "text-amber-300 bg-amber-500/10 ring-amber-500/25",
+    coach: "watcher" as const,
     points: [
       "Pre-flight bank health ping",
       "Threshold default >95% success",
@@ -58,6 +61,7 @@ const GATES = [
     icon: Zap,
     accent: "border-emerald-500/25 from-emerald-500/15 via-transparent to-transparent",
     iconCls: "text-emerald-300 bg-emerald-500/10 ring-emerald-500/25",
+    coach: "runner" as const,
     points: [
       "Amounts in paise (INR)",
       "Mock or live test keys",
@@ -79,9 +83,17 @@ export default function HomePage() {
       <Nav />
       <main className="page-enter">
         {/* Hero */}
-        <section className="relative overflow-hidden">
+        <section id="hero" className="relative overflow-hidden scroll-mt-20">
           <div
             className="pointer-events-none absolute inset-0 bg-grid-fade bg-grid opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -left-24 top-24 h-64 w-64 rounded-full bg-sentinel-500/10 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -right-16 top-40 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl"
             aria-hidden
           />
           <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-14 md:pb-24 md:pt-20">
@@ -92,7 +104,7 @@ export default function HomePage() {
               </div>
               <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-6xl md:leading-[1.08]">
                 Smart security guardrails for{" "}
-                <span className="bg-gradient-to-r from-sentinel-300 via-sky-300 to-cyan-200 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-sentinel-300 via-teal-200 to-emerald-200 bg-clip-text text-transparent">
                   AI agent payments
                 </span>
               </h1>
@@ -118,6 +130,8 @@ export default function HomePage() {
               </div>
             </div>
 
+            <GuideAgents />
+
             {/* Trust strip */}
             <div className="mx-auto mt-14 max-w-5xl">
               <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -125,7 +139,7 @@ export default function HomePage() {
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {TRUST.map((t) => (
-                  <span key={t} className="chip">
+                  <span key={t} className="chip chip-mint">
                     {t}
                   </span>
                 ))}
@@ -134,10 +148,12 @@ export default function HomePage() {
           </div>
         </section>
 
-        <PitchDeck />
+        <div>
+          <PitchDeck />
+        </div>
 
         {/* Architecture */}
-        <section className="mx-auto max-w-7xl px-4 pb-8 pt-10">
+        <section id="architecture" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-8 pt-10">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sentinel-400">
@@ -148,6 +164,7 @@ export default function HomePage() {
                 Intent → Gates → Rail
               </h2>
             </div>
+            <SectionCoach guideId="watcher" className="hidden sm:inline-flex" />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -189,10 +206,18 @@ export default function HomePage() {
         </section>
 
         {/* Gate cards */}
-        <section className="mx-auto max-w-7xl px-4 py-10">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Dual-gate control plane</h2>
-            <p className="mt-1 text-slate-400">Policy hard-stops first. Rail health decides queue vs clear.</p>
+        <section id="gates" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-10">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Dual-gate control plane</h2>
+              <p className="mt-1 text-slate-400">
+                Policy hard-stops first. Rail health decides queue vs clear.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <SectionCoach guideId="scout" />
+              <SectionCoach guideId="watcher" />
+            </div>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
             {GATES.map((c) => (
@@ -206,7 +231,10 @@ export default function HomePage() {
                   >
                     <c.icon className="h-5 w-5" aria-hidden />
                   </div>
-                  <span className="badge badge-neutral">{c.tone}</span>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="badge badge-neutral">{c.tone}</span>
+                    <SectionCoach guideId={c.coach} />
+                  </div>
                 </div>
                 <div className="mt-4 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                   {c.gate}
@@ -226,14 +254,21 @@ export default function HomePage() {
         </section>
 
         {/* CTA */}
-        <section className="mx-auto max-w-7xl px-4 pb-20 pt-4">
-          <div className="relative overflow-hidden rounded-3xl border border-sentinel-500/20 bg-gradient-to-br from-sentinel-950/80 via-ink-900 to-ink p-8 md:p-12">
+        <section id="cta" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-20 pt-4">
+          <div className="relative overflow-hidden rounded-3xl border border-sentinel-500/25 bg-gradient-to-br from-sentinel-950/90 via-ink-900 to-ink p-8 md:p-12">
             <div
-              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-sentinel-600/20 blur-3xl"
+              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-sentinel-500/20 blur-3xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-20 left-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl"
               aria-hidden
             />
             <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
               <div>
+                <div className="mb-3">
+                  <SectionCoach guideId="runner" />
+                </div>
                 <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
                   Run the full Gate 1 → Gate 2 demo
                 </h2>

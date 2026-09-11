@@ -4,6 +4,21 @@
 
 :root {
   color-scheme: dark;
+  /* Charcoal Mint Vault — fintech theme */
+  --bg-ink: #070c0b;
+  --bg-panel: rgba(12, 28, 26, 0.72);
+  --bg-panel-strong: rgba(5, 16, 15, 0.82);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-mint: rgba(13, 212, 176, 0.35);
+  --accent-mint: #0dd4b0;
+  --accent-mint-soft: #2ef5cb;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --text-primary: #f1f5f4;
+  --text-muted: #94a3b8;
+  --glow-mint: rgba(13, 212, 176, 0.28);
+  --glow-amber: rgba(245, 158, 11, 0.25);
+  --glow-rose: rgba(244, 63, 94, 0.22);
 }
 
 html {
@@ -12,10 +27,11 @@ html {
 
 body {
   @apply bg-ink text-slate-100 antialiased min-h-screen;
+  color: var(--text-primary);
   background-image:
-    radial-gradient(ellipse 90% 55% at 50% -25%, rgba(37, 99, 235, 0.16), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
-    radial-gradient(ellipse 40% 30% at 0% 20%, rgba(30, 58, 138, 0.2), transparent 45%);
+    radial-gradient(ellipse 90% 55% at 50% -25%, rgba(13, 212, 176, 0.14), transparent 55%),
+    radial-gradient(ellipse 45% 35% at 100% 0%, rgba(245, 158, 11, 0.07), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 0% 18%, rgba(4, 137, 118, 0.18), transparent 45%);
   background-attachment: fixed;
 }
 
@@ -24,21 +40,21 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid rgb(96 165 250);
+  outline: 2px solid rgb(46 245 203);
   outline-offset: 2px;
 }
 
 @layer components {
   .glass {
     @apply rounded-2xl backdrop-blur-xl shadow-card;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background-color: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-panel);
   }
 
   .glass-strong {
     @apply rounded-2xl backdrop-blur-2xl shadow-card;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(2, 6, 23, 0.7);
+    background-color: var(--bg-panel-strong);
   }
 
   .panel {
@@ -60,7 +76,7 @@ body {
     @apply border-amber-500/30 bg-amber-500/10 text-amber-300;
   }
   .badge-clear {
-    @apply border-sky-500/30 bg-sky-500/10 text-sky-300;
+    @apply border-teal-500/30 bg-teal-500/10 text-teal-300;
   }
   .badge-fail {
     @apply border-slate-500/30 bg-slate-500/10 text-slate-300;
@@ -77,16 +93,23 @@ body {
   }
 
   .btn-primary {
-    @apply btn bg-sentinel-600 text-white shadow-glow hover:bg-sentinel-500 active:bg-sentinel-700;
+    @apply btn text-ink-950 shadow-glow;
+    background: linear-gradient(135deg, #2ef5cb 0%, #0dd4b0 55%, #00ab91 100%);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
+  }
+  .btn-primary:active {
+    filter: brightness(0.95);
   }
 
   .btn-secondary {
-    @apply btn text-slate-100 hover:border-white/20;
+    @apply btn text-slate-100 hover:border-sentinel-400/40;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background-color: rgba(255, 255, 255, 0.06);
   }
   .btn-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(13, 212, 176, 0.1);
   }
 
   .btn-ghost {
@@ -158,16 +181,56 @@ body {
     @apply transition;
   }
   .table tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: rgba(13, 212, 176, 0.04);
   }
 
   .chip {
     @apply inline-flex items-center rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-300;
     background-color: rgba(255, 255, 255, 0.04);
   }
+  .chip-mint {
+    @apply chip border-sentinel-500/25 text-sentinel-200;
+    background-color: rgba(13, 212, 176, 0.08);
+  }
+  .chip-amber {
+    @apply chip border-amber-500/25 text-amber-200;
+    background-color: rgba(245, 158, 11, 0.08);
+  }
+  .chip-rose {
+    @apply chip border-rose-500/25 text-rose-200;
+    background-color: rgba(244, 63, 94, 0.08);
+  }
 
   .page-enter {
     @apply animate-fade-up;
+  }
+
+  .nav-glow {
+    box-shadow: 0 0 24px rgba(13, 212, 176, 0.12);
+  }
+
+  .guide-dock {
+    @apply fixed z-40 flex flex-col gap-2;
+    bottom: 1.25rem;
+    right: 1.25rem;
+  }
+
+  .speech-bubble {
+    @apply relative rounded-2xl border px-3.5 py-2.5 text-sm leading-snug shadow-card;
+    border-color: rgba(13, 212, 176, 0.28);
+    background: linear-gradient(160deg, rgba(12, 40, 36, 0.95), rgba(7, 18, 17, 0.92));
+  }
+  .speech-bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    left: 1.25rem;
+    width: 12px;
+    height: 12px;
+    transform: rotate(45deg);
+    border-right: 1px solid rgba(13, 212, 176, 0.28);
+    border-bottom: 1px solid rgba(13, 212, 176, 0.28);
+    background: rgba(7, 18, 17, 0.95);
   }
 }
 
