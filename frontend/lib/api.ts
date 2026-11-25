@@ -4,10 +4,14 @@ export const ADMIN_TOKEN_KEY = "sentinel_admin_token";
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  reasonCode?: string;
+  detail?: unknown;
+  constructor(message: string, status: number, detail?: unknown, reasonCode?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.detail = detail;
+    this.reasonCode = reasonCode;
   }
 }
 
@@ -95,13 +99,16 @@ async function request<T>(
           ?? (err as { message?: unknown }).message
           ?? err;
         let msg = typeof detail === "string" ? detail : JSON.stringify(detail);
-        if (detail && typeof detail === "object" && "message" in (detail as object)) {
-          msg = String((detail as { message?: unknown }).message || msg);
+        let reasonCode: string | undefined;
+        if (detail && typeof detail === "object") {
+          const obj = detail as { message?: unknown; reason_code?: unknown };
+          if ("message" in obj) msg = String(obj.message || msg);
+          if (typeof obj.reason_code === "string") reasonCode = obj.reason_code;
         }
         if (res.status === 401 && token) {
           clearStaleAdminToken();
         }
-        throw new ApiError(msg, res.status);
+        throw new ApiError(msg, res.status, detail, reasonCode);
       }
       return res.json();
     } catch (e) {
@@ -221,10 +228,11 @@ export const api = {
       body: JSON.stringify(body),
     }),
   audit: (token: string) => request<any[]>("/api/v1/admin/audit", { token }),
-  createIntent: (apiKey: string, body: Record<string, unknown>) =>
+  createIntent: (apiKey: string, body: Record<string, unknown>, idempotencyKey?: string) =>
     request<IntentResult>("/api/v1/agent/intents", {
       method: "POST",
       apiKey,
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
       body: JSON.stringify(body),
     }),
   publicConfig: () => request<PublicConfig>("/api/v1/public/config"),

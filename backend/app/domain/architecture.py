@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 
-def architecture_diagram(*, version: str = "1.3.0") -> dict[str, Any]:
+def architecture_diagram(*, version: str = "1.4.0") -> dict[str, Any]:
     """JSON diagram of planes, gates, and intent FSM — safe for public GET."""
     return {
         "service": "sentinel-ap",

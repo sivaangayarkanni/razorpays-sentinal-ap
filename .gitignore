@@ -31,3 +31,6 @@ frontend/.env.production
 
 # generated locally — never commit
 ADMIN_PASSWORD.txt
+
+# local verification screenshots — never commit
+shots/

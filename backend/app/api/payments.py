@@ -75,12 +75,11 @@ async def _require_admin_or_agent(
 async def public_config() -> PublicConfigResponse:
     """Expose public Razorpay key id for Checkout.js (never the secret)."""
     settings = get_settings()
-    mock = is_mock_mode()
-    key_id = "" if mock else (settings.razorpay_key_id or "")
-    mode = "mock" if mock else api_mode_from_key(key_id)
+    key_id = settings.razorpay_key_id or ""
+    mode = api_mode_from_key(key_id) if key_id else "unconfigured"
     return PublicConfigResponse(
         razorpay_key_id=key_id,
-        mock=mock,
+        mock=False,
         api_mode=mode,
     )
 

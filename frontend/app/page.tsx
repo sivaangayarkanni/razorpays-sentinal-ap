@@ -121,6 +121,9 @@ export default function HomePage() {
                   Sign in
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
+                <Link href="/pay" className="btn-secondary !px-5 !py-3">
+                  New payment
+                </Link>
                 <Link href="/integrate" className="btn-secondary !px-5 !py-3">
                   Integrate
                 </Link>

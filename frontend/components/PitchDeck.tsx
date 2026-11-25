@@ -119,12 +119,12 @@ const SLIDES = [
   {
     n: "08",
     title: "Ask / Demo",
-    subtitle: "Playground + internship-ready stack",
+    subtitle: "Console + internship-ready stack",
     icon: Target,
     accent: "from-lavender-500/15 to-transparent border-lavender-500/25",
     iconCls: "text-lavender-700 bg-lavender-50 ring-lavender-500/30",
     bullets: [
-      "Open Playground — ALLOW → test card 4111… → verify",
+      "Open New payment — ALLOW → Checkout test card 4111… → verify",
       "Hard-block + soft-fail scenarios in one click",
       "Agent example: examples/agent_buyer.py",
       "Docs: ARCHITECTURE.md · INTERNSHIP.md",
@@ -260,8 +260,8 @@ export function PitchDeck() {
                 ))}
               </ul>
               {i === SLIDES.length - 1 && (
-                <Link href="/playground" className="btn-primary mt-5 w-full !py-2.5 text-sm">
-                  Launch Playground
+                <Link href="/pay" className="btn-primary mt-5 w-full !py-2.5 text-sm">
+                  New payment
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               )}

@@ -9,7 +9,7 @@ Conceptual flow (persisted DecisionOutcome values stay API-compatible):
   * terminal: HARD_BLOCK, FAILED, VERIFIED
 
 VERIFIED is recorded via reason_code=PAYMENT_VERIFIED without changing the public
-status enum used by playground/dashboard (ALLOW / CLEARED).
+status enum used by the console and dashboard (ALLOW / CLEARED).
 """
 from __future__ import annotations
 

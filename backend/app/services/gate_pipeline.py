@@ -38,10 +38,18 @@ policy_engine = PolicyEngine()
 logger = logging.getLogger("sentinel-ap.pipeline")
 
 
-async def _spent_today(db: AsyncSession, org_id: UUID, exclude_intent_id: UUID | None = None) -> int:
+async def _spent_today(
+    db: AsyncSession,
+    *,
+    org_id: UUID,
+    agent_id: UUID,
+    exclude_intent_id: UUID | None = None,
+) -> int:
+    """Sum of today's ALLOW/CLEARED/QUEUED amounts for one agent key."""
     start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     clauses = [
         Intent.organization_id == org_id,
+        Intent.agent_id == agent_id,
         Intent.created_at >= start,
         Intent.status.in_(
             [DecisionOutcome.ALLOW, DecisionOutcome.CLEARED, DecisionOutcome.QUEUED]
@@ -52,6 +60,21 @@ async def _spent_today(db: AsyncSession, org_id: UUID, exclude_intent_id: UUID |
     q = await db.execute(
         select(func.coalesce(func.sum(Intent.amount_paise), 0)).where(*clauses)
     )
+    return int(q.scalar_one())
+
+
+async def _recent_intent_count(
+    db: AsyncSession,
+    *,
+    agent_id: UUID,
+    exclude_intent_id: UUID | None = None,
+    window_seconds: int = 60,
+) -> int:
+    start = datetime.now(timezone.utc) - timedelta(seconds=window_seconds)
+    clauses = [Intent.agent_id == agent_id, Intent.created_at >= start]
+    if exclude_intent_id is not None:
+        clauses.append(Intent.id != exclude_intent_id)
+    q = await db.execute(select(func.count(Intent.id)).where(*clauses))
     return int(q.scalar_one())
 
 
@@ -121,21 +144,29 @@ async def process_intent(
             organization_id=organization.id,
             name="Default Guardrail",
             max_amount_paise=50_000_00,
-            daily_budget_paise=200_000_00,
-            sku_whitelist=[],
-            sku_blacklist=["WEAPON", "GAMBLING", "CRYPTO_MIXER"],
+            daily_budget_paise=100_000_00,
+            sku_whitelist=["LAPTOP-PRO", "MOUSE-MX", "KEYBOARD-MECH", "MONITOR-4K", "SSD-1TB", "USB-C-HUB"],
+            sku_blacklist=["WEAPON", "GAMBLING", "CRYPTO_MIXER", "TOBACCO"],
+            allowed_currencies=["INR"],
+            max_intents_per_minute=8,
+            window_timezone="Asia/Kolkata",
             is_active=True,
         )
         db.add(policy)
         await db.flush()
 
-    spent = await _spent_today(db, organization.id, exclude_intent_id=intent.id)
+    spent = await _spent_today(
+        db, org_id=organization.id, agent_id=agent.id, exclude_intent_id=intent.id
+    )
+    recent = await _recent_intent_count(db, agent_id=agent.id, exclude_intent_id=intent.id)
     verdict = policy_engine.evaluate(
         amount_paise=amount_paise,
         currency=currency,
         sku=sku,
         policy=policy,
         spent_today_paise=spent,
+        recent_intent_count=recent,
+        now=datetime.now(timezone.utc),
     )
     policy_decision = _policy_decision_from_verdict(verdict)
 
@@ -249,25 +280,30 @@ async def process_intent(
         receipt=str(intent.id)[:40],
         notes={"sku": sku, "agent_id": str(agent.id), "org": organization.slug},
     )
-    mock_flag = bool(getattr(order, "mock", False) or (order.order_id or "").startswith("order_mock_"))
-    payment = PaymentDispatch(
-        success=bool(order.success),
-        order_id=order.order_id,
-        payment_id=order.payment_id,
-        mock=mock_flag,
-        error=order.error,
-        raw=order.raw or {},
-    )
+    if (order.order_id or "").startswith("order_mock_"):
+        payment = PaymentDispatch(
+            success=False,
+            order_id=None,
+            payment_id=None,
+            mock=False,
+            error="Mock Razorpay orders are not accepted",
+            raw=order.raw or {},
+        )
+    else:
+        payment = PaymentDispatch(
+            success=bool(order.success),
+            order_id=order.order_id,
+            payment_id=order.payment_id,
+            mock=False,
+            error=order.error,
+            raw=order.raw or {},
+        )
 
     if payment.success:
         apply_transition(intent, IntentState.ALLOW, via="razorpay_order_ok", from_pending=True)
         intent.razorpay_order_id = payment.order_id
         intent.razorpay_payment_id = payment.payment_id
-        reason_msg = (
-            "Mock Razorpay order created (RAZORPAY_MOCK)"
-            if payment.mock
-            else "Live Razorpay Order created — awaiting Checkout payment + signature verify"
-        )
+        reason_msg = "Razorpay Order created — awaiting Checkout payment + signature verify"
         db.add(
             Decision(
                 intent_id=intent.id,
@@ -275,19 +311,18 @@ async def process_intent(
                 outcome=DecisionOutcome.ALLOW,
                 reason_code=payment.reason_code,
                 reason_message=reason_msg,
-                details={**(payment.raw or {}), "mock": payment.mock},
+                details={**(payment.raw or {})},
             )
         )
         await write_audit(
             db,
             actor=f"agent:{agent.id}",
-            action="razorpay.order_created" if not payment.mock else "intent.allowed",
+            action="razorpay.order_created",
             organization_id=organization.id,
             resource_type="intent",
             resource_id=str(intent.id),
             payload={
                 "order_id": payment.order_id,
-                "mock": payment.mock,
                 "amount_paise": amount_paise,
                 "currency": currency.upper(),
                 "sku": sku,

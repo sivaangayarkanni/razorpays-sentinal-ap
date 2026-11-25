@@ -11,8 +11,8 @@ def test_routes_include_payments():
     assert "/api/v1/public/metrics" in paths
     assert "/api/v1/public/architecture" in paths
     assert "/api/v1/metrics" in paths
-    assert APP_VERSION == "1.3.0"
-    assert app.version == "1.3.0"
+    assert APP_VERSION == "1.4.0"
+    assert app.version == APP_VERSION
 
 
 def test_request_id_middleware_registered():

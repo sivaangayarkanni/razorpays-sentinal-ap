@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 
 from app.api.deps import DbSession
 from app.models.entities import DecisionOutcome, Intent, QueueJob, QueueStatus
+from app import __version__
 from app.domain.architecture import architecture_diagram
 from app.services.bank_health import bank_health_service
 from app.services.intent_fsm import fsm_diagram
@@ -48,7 +49,7 @@ async def public_metrics(db: DbSession) -> dict[str, Any]:
 
     return {
         "service": "sentinel-ap",
-        "version": "1.3.0",  # keep in sync with app.main.APP_VERSION
+        "version": __version__,
         "intents": {"total": total, "by_status": by_status},
         "blocks": by_status["HARD_BLOCK"],
         "queue_depth": queue_pending,
@@ -70,7 +71,7 @@ async def public_metrics(db: DbSession) -> dict[str, Any]:
 @router.get("/public/architecture")
 async def public_architecture() -> dict[str, Any]:
     """JSON diagram of planes, gates, and intent FSM (no secrets)."""
-    diagram = architecture_diagram(version="1.3.0")
+    diagram = architecture_diagram(version=__version__)
     diagram["intent_fsm_runtime"] = fsm_diagram()
     diagram["bank_health"] = bank_health_service.circuit_status()
     return diagram

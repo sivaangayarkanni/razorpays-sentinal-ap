@@ -27,8 +27,8 @@ class PasswordChangeRequest(BaseModel):
 
 # ---- Intent / Agent API ----
 class IntentCreate(BaseModel):
-    amount_paise: int = Field(..., gt=0, description="Amount in paise (INR * 100)")
-    currency: str = Field(default="INR", min_length=3, max_length=3)
+    amount_paise: int = Field(..., description="Amount in paise (INR * 100). Non-positive values are hard-blocked.")
+    currency: str = Field(default="INR", min_length=1, max_length=3)
     sku: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     external_ref: Optional[str] = None
@@ -68,11 +68,15 @@ class IntentResponse(BaseModel):
 class PolicyCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    max_amount_paise: int = 10_000_00
-    daily_budget_paise: int = 50_000_00
+    max_amount_paise: int = 50_000_00
+    daily_budget_paise: int = 100_000_00
     sku_whitelist: list[str] = Field(default_factory=list)
     sku_blacklist: list[str] = Field(default_factory=list)
     allowed_currencies: list[str] = Field(default_factory=lambda: ["INR"])
+    max_intents_per_minute: int = 8
+    window_start_hour: Optional[int] = Field(None, ge=0, le=23)
+    window_end_hour: Optional[int] = Field(None, ge=0, le=23)
+    window_timezone: str = "Asia/Kolkata"
     is_active: bool = True
 
 
@@ -84,6 +88,10 @@ class PolicyUpdate(BaseModel):
     sku_whitelist: Optional[list[str]] = None
     sku_blacklist: Optional[list[str]] = None
     allowed_currencies: Optional[list[str]] = None
+    max_intents_per_minute: Optional[int] = None
+    window_start_hour: Optional[int] = Field(None, ge=0, le=23)
+    window_end_hour: Optional[int] = Field(None, ge=0, le=23)
+    window_timezone: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -97,6 +105,10 @@ class PolicyOut(BaseModel):
     sku_whitelist: list[Any]
     sku_blacklist: list[Any]
     allowed_currencies: list[Any]
+    max_intents_per_minute: int = 8
+    window_start_hour: Optional[int] = None
+    window_end_hour: Optional[int] = None
+    window_timezone: str = "Asia/Kolkata"
     is_active: bool
     created_at: datetime
     updated_at: datetime

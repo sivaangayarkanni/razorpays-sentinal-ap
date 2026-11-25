@@ -66,7 +66,7 @@ function PoliciesInner({ token: t }: { token: string }) {
       <main className="mx-auto max-w-4xl px-4 py-8 page-enter">
         <PageHeader
           title="Policy Management"
-          description="Gate 1 deterministic guardrails (per-org)"
+          description="Gate 1 deterministic guardrails. Daily spend and velocity are enforced per agent key."
           actions={
             <button className="btn-secondary" disabled={saving || loading} onClick={() => t && load(t)}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} aria-hidden />
@@ -149,6 +149,77 @@ function PoliciesInner({ token: t }: { token: string }) {
                   })
                 }
               />
+            </label>
+
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="label">Max intents per minute (per agent key)</span>
+                <input
+                  className="input"
+                  type="number"
+                  defaultValue={active.max_intents_per_minute ?? 8}
+                  key={`vel-${active.max_intents_per_minute}`}
+                  onBlur={(e) => save({ max_intents_per_minute: Number(e.target.value) })}
+                />
+                <span className="text-xs text-fg-subtle">0 disables the velocity rule. reason_code VELOCITY_EXCEEDED</span>
+              </label>
+              <label className="block space-y-1.5">
+                <span className="label">Allowed currencies</span>
+                <input
+                  className="input"
+                  defaultValue={(active.allowed_currencies || ["INR"]).join(", ")}
+                  key={`ccy-${(active.allowed_currencies || []).join(",")}`}
+                  onBlur={(e) =>
+                    save({
+                      allowed_currencies: e.target.value
+                        .split(",")
+                        .map((s: string) => s.trim().toUpperCase())
+                        .filter(Boolean),
+                    })
+                  }
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="label">Window start hour (0–23, empty = always open)</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  max={23}
+                  defaultValue={active.window_start_hour ?? ""}
+                  key={`ws-${active.window_start_hour}`}
+                  onBlur={(e) =>
+                    save({ window_start_hour: e.target.value === "" ? null : Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="label">Window end hour (0–23)</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  max={23}
+                  defaultValue={active.window_end_hour ?? ""}
+                  key={`we-${active.window_end_hour}`}
+                  onBlur={(e) =>
+                    save({ window_end_hour: e.target.value === "" ? null : Number(e.target.value) })
+                  }
+                />
+              </label>
+            </div>
+            <label className="block space-y-1.5">
+              <span className="label">Payment window timezone</span>
+              <input
+                className="input"
+                defaultValue={active.window_timezone || "Asia/Kolkata"}
+                key={`tz-${active.window_timezone}`}
+                onBlur={(e) => save({ window_timezone: e.target.value || "Asia/Kolkata" })}
+              />
+              <span className="text-xs text-fg-subtle">
+                Daily budget is counted per agent key. Leave both window hours empty to keep payments open all day.
+              </span>
             </label>
 
             <label className="block space-y-1.5">

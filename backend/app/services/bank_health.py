@@ -61,7 +61,7 @@ class BankHealthService:
         self._circuit_open_until: float = 0.0
 
     def set_mock_success_rate(self, rate: float) -> None:
-        """Demo control: force a success rate (0.0–1.0). Invalidates cache."""
+        """Test-only forced rate. Production admin config is gated and disabled."""
         self._forced_rate = max(0.0, min(1.0, rate))
         self._cache = None
 
@@ -91,7 +91,7 @@ class BankHealthService:
         # Forced override never uses cache (demo toggles must be immediate)
         if self._forced_rate is not None:
             success_rate = self._forced_rate
-            details: dict[str, Any] = {"mode": "forced", "note": "Demo override active"}
+            details: dict[str, Any] = {"mode": "forced", "note": "Test override active"}
             latency_ms = int((time.perf_counter() - start) * 1000)
             return BankHealthResult(
                 provider="razorpay",
@@ -136,13 +136,7 @@ class BankHealthService:
             self._cache = (now + HEALTH_CACHE_TTL_SECONDS, result)
             return result
 
-        if is_mock_mode():
-            base = settings.bank_health_mock_success_rate
-            jitter = random.uniform(-0.01, 0.01)
-            success_rate = max(0.0, min(1.0, base + jitter))
-            details = {"mode": "mock", "base_rate": base}
-        else:
-            success_rate, details = await self._live_probe()
+        success_rate, details = await self._live_probe()
 
         latency_ms = int((time.perf_counter() - start) * 1000)
         is_degraded = success_rate < thr

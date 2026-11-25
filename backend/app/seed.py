@@ -78,12 +78,16 @@ async def seed_demo_data() -> None:
                 Policy(
                     organization_id=org.id,
                     name="Default Guardrail",
-                    description="Per-transaction and daily caps, SKU allow/deny lists",
-                    max_amount_paise=10_000_00,
-                    daily_budget_paise=50_000_00,
+                    description="Per-transaction cap ₹50,000, daily cap ₹1,00,000 per agent key, SKU lists, velocity, INR only",
+                    max_amount_paise=50_000_00,
+                    daily_budget_paise=100_000_00,
                     sku_whitelist=["LAPTOP-PRO", "MOUSE-MX", "KEYBOARD-MECH", "MONITOR-4K", "SSD-1TB", "USB-C-HUB"],
                     sku_blacklist=["WEAPON", "GAMBLING", "CRYPTO_MIXER", "TOBACCO"],
                     allowed_currencies=["INR"],
+                    max_intents_per_minute=8,
+                    window_start_hour=None,
+                    window_end_hour=None,
+                    window_timezone="Asia/Kolkata",
                     is_active=True,
                 )
             )

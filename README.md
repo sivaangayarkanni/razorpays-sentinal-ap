@@ -30,6 +30,7 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 | Recorded-demo voiceover script | [`docs/DEMO_RECORDING_SCRIPT.md`](docs/DEMO_RECORDING_SCRIPT.md) |
 | Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Internship notes | [`docs/INTERNSHIP.md`](docs/INTERNSHIP.md) |
+| Repo walkthrough | [`docs/REPO_WALKTHROUGH.md`](docs/REPO_WALKTHROUGH.md) · [PDF](docs/REPO_WALKTHROUGH.pdf) |
 
 **Admin access**
 - Sign in at `/dashboard` with `ADMIN_EMAIL`. If `ADMIN_PASSWORD` is a strong value, or `ADMIN_PASSWORD_HASH` is set, that is used to bootstrap a fresh database. If both are unset or the password is a weak default, the API uses a baked-in bcrypt hash (no plaintext in the repo) and does not force a password change.
@@ -37,20 +38,15 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 
 ### Production console
 
-1. Open **https://sentinel-ap.vercel.app/dashboard** — look for the **Test keys** or **Live** badge.
-2. Click **✓ Successful clearance** → Gate 1 + Gate 2 pass → real Razorpay `order_…` id (not `order_mock_`).
-3. Razorpay Checkout opens automatically. Pay with test card:
-   - Card: `4111 1111 1111 1111`
-   - Expiry: any future date · CVV: any · Name: any
-   - Docs: https://razorpay.com/docs/payments/payments/test-card-details/
-4. On success, playground calls `POST /api/v1/payments/verify` and shows `payment_id` + verified state.
-5. Click **⛔ Hard Block — blacklisted SKU** → `HARD_BLOCK` / `SKU_BLACKLISTED` (unchanged).
-6. Click **⛔ Hard Block — amount cap** → `HARD_BLOCK` / `AMOUNT_CAP_EXCEEDED` (unchanged).
-7. Click **⏸ Soft-Fail Queue** → bank forced to 80%, intent `QUEUED` (enqueue display works without worker).
-8. Click **Restore bank health & clear queue** → manual retry attempts CLEARED when rail recovers.
-9. Open **Dashboard** (admin login) — decision feed + audit trail for `razorpay.order_created` / `razorpay.payment_verified`.
+1. Open **https://sentinel-ap.vercel.app** — the header and landing show a live API status chip (Online / Waking up · slow / Offline) that polls `/health` every 15 seconds.
+2. Sign in at `/dashboard` and open **New payment** (`/pay`). Issue a test agent key (shown once, kept in the tab only).
+3. Submit **ALLOW · ₹4,999 LAPTOP-PRO**. Gate 1 and Gate 2 pass and a real Razorpay `order_…` id is returned. Checkout.js opens automatically.
+4. Pay with a Razorpay test card (`4111 1111 1111 1111`, any future expiry and CVV). The console posts `POST /api/v1/payments/verify` and shows the verified `payment_id`.
+5. Use the built-in cases for `HARD_BLOCK` reason codes: amount cap, blacklisted SKU, SKU not on the whitelist, non-INR currency, zero amount, absurd amount, and a 9-intent velocity burst.
+6. Open **Dashboard** — decision feed and audit trail for `razorpay.order_created` / `razorpay.payment_verified`.
+7. Queued intents retry automatically via the in-process drain loop (every 15s). Manual retry remains on **Queue**.
 
-> **Worker note:** Soft-fail enqueue (`QUEUED`) works without a separate ARQ worker. The API now also runs an in-process drain loop (every 15s) so queued jobs auto-retry on a single free-tier web service. A dedicated Render worker is still optional for isolation. Manual **Restore & clear** from Playground / Queue admin still works immediately.
+> **Worker note:** Soft-fail enqueue (`QUEUED`) works without a separate ARQ worker. A dedicated Render worker is optional for isolation.
 
 ### Razorpay test keys setup
 
@@ -62,10 +58,11 @@ RAZORPAY_KEY_SECRET=...
 RAZORPAY_MOCK=false
 ```
 
-Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, mock, api_mode }`.
+Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, mock: false, api_mode }`. `RAZORPAY_MOCK` is ignored; missing keys fail closed and never invent `order_mock_` ids.
 
-**v1.3 system-design features**
-- `Idempotency-Key` on `POST /api/v1/agent/intents` (duplicate → same intent)
+**v1.4 system-design features**
+- Live API status chip (header, landing, `/status`) polling `GET /health` every 15s
+- `Idempotency-Key` on `POST /api/v1/agent/intents` (same payload → same intent; different payload → `409 IDEMPOTENCY_KEY_CONFLICT`)
 - `X-Request-Id` on every response
 - `POST /api/v1/webhooks/razorpay` (`payment.captured`; optional `RAZORPAY_WEBHOOK_SECRET`)
 - `GET /api/v1/public/metrics` — intents by status, blocks, queue depth
@@ -147,22 +144,21 @@ docker compose up --build
 
 ## 5-minute local demo script
 
-1. Open **http://localhost:3000** — landing + `#pitch` slide strip.
-2. Go to **Demo Playground**.
-3. Click **✓ Successful clearance** → status `ALLOW`, Gate 1 + Gate 2 pass, Razorpay `order_id` (mock unless keys set).
-4. Click **⛔ Hard Block — blacklisted SKU** → `HARD_BLOCK` / `SKU_BLACKLISTED`.
-5. Click **⛔ Hard Block — amount cap** → `HARD_BLOCK` / `AMOUNT_CAP_EXCEEDED`.
-6. Click **⏸ Soft-Fail Queue** → bank forced to 80%, intent `QUEUED`.
-7. Click **Restore bank health & clear queue** → job `COMPLETED`, intent `CLEARED`.
-8. Open **Dashboard** (login with admin) — decision feed shows all outcomes.
+1. Open **http://localhost:3000** — confirm the status chip is Online (the API must have real Razorpay test keys to create orders).
+2. Sign in, open **New payment**, and issue or paste an agent key.
+3. Submit ₹4,999 / `LAPTOP-PRO` → `ALLOW` and Checkout opens with a real `order_…` id.
+4. Submit a blacklisted SKU (`WEAPON`) → `HARD_BLOCK` / `SKU_BLACKLISTED`.
+5. Submit ₹50,001 → `HARD_BLOCK` / `AMOUNT_CAP_EXCEEDED`.
+6. Open **Dashboard** — decision feed shows all outcomes.
 
 ## API examples
 
 ```bash
-# Successful intent
+# Successful intent (replace with a key issued from /agents)
 curl -s -X POST https://sentinel-api-ecw9.onrender.com/api/v1/agent/intents \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: sap_demo000000000000000000000000000001" \
+  -H "X-API-Key: sap_<your-agent-key>" \
+  -H "Idempotency-Key: $(uuidgen)" \
   -d '{"amount_paise":499900,"currency":"INR","sku":"LAPTOP-PRO"}' | jq
 
 # Public Razorpay config (safe for frontend)
@@ -171,7 +167,7 @@ curl -s https://sentinel-api-ecw9.onrender.com/api/v1/public/config | jq
 # Hard block (blacklist)
 curl -s -X POST https://sentinel-api-ecw9.onrender.com/api/v1/agent/intents \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: sap_demo000000000000000000000000000001" \
+  -H "X-API-Key: sap_<your-agent-key>" \
   -d '{"amount_paise":50000,"currency":"INR","sku":"WEAPON"}' | jq
 ```
 

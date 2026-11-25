@@ -64,13 +64,7 @@ def api_mode_from_key(key_id: str) -> str:
 
 
 def is_mock_mode() -> bool:
-    """Mock only when payment keys are missing, or when ENABLE_DEMO is on and mock is requested."""
-    settings = get_settings()
-    keys_configured = bool(settings.razorpay_key_id and settings.razorpay_key_secret)
-    if not keys_configured:
-        return True
-    if settings.enable_demo:
-        return bool(settings.razorpay_mock)
+    """Always false. RAZORPAY_MOCK cannot invent orders — missing keys fail closed."""
     return False
 
 
@@ -94,23 +88,12 @@ class RazorpayClient:
         receipt: str,
         notes: dict[str, Any] | None = None,
     ) -> OrderResult:
-        if is_mock_mode():
-            order_id = f"order_mock_{uuid.uuid4().hex[:16]}"
-            payment_id = f"pay_mock_{uuid.uuid4().hex[:16]}"
+        settings = get_settings()
+        if not (settings.razorpay_key_id and settings.razorpay_key_secret):
             return OrderResult(
-                success=True,
-                order_id=order_id,
-                payment_id=payment_id,
-                mock=True,
-                raw={
-                    "id": order_id,
-                    "amount": amount_paise,
-                    "currency": currency,
-                    "receipt": receipt,
-                    "status": "created",
-                    "notes": notes or {},
-                    "mock": True,
-                },
+                success=False,
+                error="Razorpay keys are not configured",
+                mock=False,
             )
 
         payload = {
@@ -153,14 +136,12 @@ class RazorpayClient:
         signature: str,
     ) -> VerifyResult:
         """Verify Razorpay Checkout success callback signature (HMAC-SHA256)."""
-        if is_mock_mode():
-            if order_id.startswith("order_mock_") and payment_id.startswith("pay_mock_"):
-                return VerifyResult(success=True)
-            if signature == "mock_signature":
-                return VerifyResult(success=True)
-            return VerifyResult(success=False, error="Invalid mock signature")
-
         settings = get_settings()
+        if not settings.razorpay_key_secret:
+            return VerifyResult(success=False, error="Razorpay keys are not configured")
+        if order_id.startswith("order_mock_") or payment_id.startswith("pay_mock_") or signature == "mock_signature":
+            return VerifyResult(success=False, error="Mock payment signatures are not accepted")
+
         message = f"{order_id}|{payment_id}".encode()
         expected = hmac.new(
             settings.razorpay_key_secret.encode(),
@@ -187,9 +168,12 @@ class RazorpayClient:
         return VerifyResult(success=False, error="Invalid payment signature")
 
     async def fetch_order(self, order_id: str) -> dict[str, Any]:
-        """Fetch order status from Razorpay (or mock stub)."""
-        if is_mock_mode() or order_id.startswith("order_mock_"):
-            return {"id": order_id, "status": "created", "mock": True}
+        """Fetch order status from Razorpay."""
+        if order_id.startswith("order_mock_"):
+            raise RuntimeError("Mock orders are not supported")
+        settings = get_settings()
+        if not (settings.razorpay_key_id and settings.razorpay_key_secret):
+            raise RuntimeError("Razorpay keys are not configured")
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(f"{RAZORPAY_API}/orders/{order_id}", auth=_auth())
@@ -206,9 +190,9 @@ class RazorpayClient:
 
     def get_status(self) -> RazorpayStatus:
         settings = get_settings()
-        mock = is_mock_mode()
+        mock = False
         key = settings.razorpay_key_id or ""
-        mode = "mock" if mock else api_mode_from_key(key)
+        mode = api_mode_from_key(key) if key else "unconfigured"
         prefix = ""
         if key:
             prefix = key[:12] + "…" if len(key) > 12 else key[:8] + "…"

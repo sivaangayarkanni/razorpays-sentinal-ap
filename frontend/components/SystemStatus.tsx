@@ -1,69 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Activity } from "lucide-react";
-import { API_URL, paymentModeLabel, wakeApi } from "@/lib/api";
+import { API_URL } from "@/lib/api";
+import { formatCheckedAt, useServerStatus, type StatusKind } from "@/lib/health";
 
-type Health = { status?: string; version?: string; db?: string };
-type Config = { mock?: boolean; api_mode?: string; razorpay_key_id?: string };
+const TONE: Record<StatusKind, string> = {
+  online: "bg-sentinel-50 text-sentinel-700 ring-sentinel-500/30",
+  waking: "bg-amber-50 text-amber-800 ring-amber-500/35",
+  offline: "bg-rose-50 text-rose-700 ring-rose-500/30",
+  checking: "bg-surface text-fg-muted ring-line",
+};
 
-export function SystemStatus() {
-  const [label, setLabel] = useState("Checking…");
-  const [ok, setOk] = useState<boolean | null>(null);
+const DOT: Record<StatusKind, string> = {
+  online: "bg-sentinel-500",
+  waking: "bg-amber-500 animate-pulse",
+  offline: "bg-rose-500",
+  checking: "bg-fg-subtle animate-pulse",
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLabel("Connecting…");
-      const ready = await wakeApi({
-        attempts: 5,
-        onStatus: (msg) => {
-          if (!cancelled) setLabel(msg.replace("Waking API… the Render service may be starting.", "Connecting…"));
-        },
-      });
-      if (cancelled) return;
-      if (!ready) {
-        setOk(false);
-        setLabel("API unreachable");
-        return;
-      }
-      try {
-        const [hRes, cRes] = await Promise.all([
-          fetch(`${API_URL}/health`, { cache: "no-store" }),
-          fetch(`${API_URL}/api/v1/public/config`, { cache: "no-store" }),
-        ]);
-        if (!hRes.ok) throw new Error("health");
-        const health = (await hRes.json()) as Health;
-        const config = cRes.ok ? ((await cRes.json()) as Config) : null;
-        if (cancelled) return;
-        const mode = paymentModeLabel(config);
-        setOk(health.status === "ok");
-        setLabel(`API ${health.version || "?"} · ${mode.label}`);
-      } catch {
-        if (!cancelled) {
-          setOk(false);
-          setLabel("API unreachable");
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+export function ServerStatusBadge({ compact = false }: { compact?: boolean }) {
+  const s = useServerStatus();
+  const title = [
+    s.label,
+    s.latencyMs != null ? `${s.latencyMs} ms` : null,
+    s.checkedAt ? `checked ${formatCheckedAt(s.checkedAt)} IST` : null,
+    s.health?.db ? `db ${s.health.db}` : null,
+    s.health?.redis ? `redis ${s.health.redis}` : null,
+    API_URL,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${
-        ok === true
-          ? "bg-sentinel-50 text-sentinel-700 ring-sentinel-500/30"
-          : ok === false
-            ? "bg-rose-50 text-rose-600 ring-rose-500/30"
-            : "bg-surface text-fg-muted ring-line"
-      }`}
-      title={API_URL}
+    <Link
+      href="/status"
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition hover:brightness-95 ${TONE[s.kind]}`}
+      title={title}
     >
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT[s.kind]}`} aria-hidden />
       <Activity className="h-3 w-3" aria-hidden />
-      {label}
-    </span>
+      <span>{s.label}</span>
+      {!compact && s.latencyMs != null && (
+        <span className="hidden text-[10px] opacity-80 sm:inline">{s.latencyMs} ms</span>
+      )}
+    </Link>
+  );
+}
+
+export function SystemStatus() {
+  const s = useServerStatus();
+  return (
+    <div className="inline-flex flex-col items-center gap-1">
+      <ServerStatusBadge />
+      <p className="text-[11px] text-fg-subtle">
+        {s.checkedAt
+          ? `Checked ${formatCheckedAt(s.checkedAt)} IST${s.latencyMs != null ? ` · ${s.latencyMs} ms` : ""}`
+          : "Checking API health…"}
+        {s.health?.db ? ` · DB ${s.health.db}` : ""}
+        {s.health?.redis ? ` · Redis ${s.health.redis}` : ""}
+      </p>
+    </div>
   );
 }

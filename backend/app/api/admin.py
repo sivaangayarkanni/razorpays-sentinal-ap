@@ -44,6 +44,7 @@ from app.schemas.api import (
 )
 from app.services.audit import write_audit
 from app.services.bank_health import bank_health_service
+from app import __version__
 from app.domain.architecture import architecture_diagram
 from app.services.gate_pipeline import drain_due_jobs, retry_queued_job
 from app.services.intent_fsm import fsm_diagram
@@ -316,7 +317,7 @@ async def drain_queue(
 @router.get("/system")
 async def admin_system(_: AdminDep) -> dict:
     """Admin view of architecture planes + FSM + circuit breaker (no secrets)."""
-    diagram = architecture_diagram(version="1.3.0")
+    diagram = architecture_diagram(version=__version__)
     diagram["intent_fsm_runtime"] = fsm_diagram()
     diagram["bank_health"] = bank_health_service.circuit_status()
     diagram["planes_summary"] = [p["name"] for p in diagram["planes"]]

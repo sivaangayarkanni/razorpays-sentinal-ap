@@ -6,10 +6,12 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Menu, X, Shield } from "lucide-react";
 import { ADMIN_TOKEN_KEY } from "@/lib/api";
+import { ServerStatusBadge } from "@/components/SystemStatus";
 
 const links = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/pay", label: "New payment" },
   { href: "/policies", label: "Policies" },
   { href: "/agents", label: "API keys" },
   { href: "/bank-health", label: "Bank Health" },
@@ -90,6 +92,7 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <ServerStatusBadge compact />
           <Link href={ctaHref} className="btn-primary hidden text-xs sm:inline-flex md:text-sm">
             {ctaLabel}
           </Link>

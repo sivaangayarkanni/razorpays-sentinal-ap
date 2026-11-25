@@ -1,6 +1,8 @@
 """Agent-facing intent API with Idempotency-Key support."""
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Optional
 from uuid import UUID
 
@@ -20,6 +22,17 @@ router = APIRouter(
     prefix="/agent",
     tags=["Agent"],
 )
+
+
+def intent_fingerprint(*, amount_paise: int, currency: str, sku: str, description: str | None, external_ref: str | None) -> str:
+    payload = {
+        "amount_paise": amount_paise,
+        "currency": (currency or "INR").upper(),
+        "sku": sku,
+        "description": description or "",
+        "external_ref": external_ref or "",
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def _intent_to_response(intent: Intent, *, idempotent: bool = False) -> IntentResponse:
@@ -108,6 +121,23 @@ async def create_intent(
             )
         ).scalar_one_or_none()
         if existing:
+            fp = intent_fingerprint(
+                amount_paise=body.amount_paise,
+                currency=body.currency,
+                sku=body.sku,
+                description=body.description,
+                external_ref=body.external_ref,
+            )
+            if existing.request_hash and existing.request_hash != fp:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "idempotency_conflict",
+                        "reason_code": "IDEMPOTENCY_KEY_CONFLICT",
+                        "message": "Idempotency-Key was reused with a different payload",
+                        "intent_id": str(existing.intent_id),
+                    },
+                )
             intent = await _load_intent(db, existing.intent_id)
             return _intent_to_response(intent, idempotent=True)
 
@@ -129,6 +159,13 @@ async def create_intent(
                 agent_id=agent.id,
                 key=key,
                 intent_id=intent.id,
+                request_hash=intent_fingerprint(
+                    amount_paise=body.amount_paise,
+                    currency=body.currency,
+                    sku=body.sku,
+                    description=body.description,
+                    external_ref=body.external_ref,
+                ),
             )
         )
         await write_audit(

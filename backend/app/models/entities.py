@@ -94,11 +94,15 @@ class Policy(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Budget in paise (INR * 100)
-    max_amount_paise: Mapped[int] = mapped_column(Integer, default=100_000_00)  # ₹1,00,000
-    daily_budget_paise: Mapped[int] = mapped_column(Integer, default=500_000_00)  # ₹5,00,000
+    max_amount_paise: Mapped[int] = mapped_column(Integer, default=50_000_00)  # ₹50,000
+    daily_budget_paise: Mapped[int] = mapped_column(Integer, default=100_000_00)  # ₹1,00,000 per agent key
     sku_whitelist: Mapped[list[Any]] = mapped_column(JsonType, default=list)
     sku_blacklist: Mapped[list[Any]] = mapped_column(JsonType, default=list)
     allowed_currencies: Mapped[list[Any]] = mapped_column(JsonType, default=lambda: ["INR"])
+    max_intents_per_minute: Mapped[int] = mapped_column(Integer, default=8)
+    window_start_hour: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    window_end_hour: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    window_timezone: Mapped[str] = mapped_column(String(64), default="Asia/Kolkata")
     extra_rules: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -205,6 +209,7 @@ class IdempotencyRecord(Base):
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agents.id", ondelete="CASCADE"), nullable=False)
     key: Mapped[str] = mapped_column(String(255), nullable=False)
     intent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("intents.id", ondelete="CASCADE"), nullable=False)
+    request_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

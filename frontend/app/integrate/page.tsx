@@ -77,6 +77,47 @@ export default function IntegratePage() {
             </li>
           </ul>
         </div>
+
+        <div className="panel mt-6 space-y-3">
+          <h2 className="font-semibold text-fg">4. Open Razorpay Checkout on ALLOW</h2>
+          <p className="text-sm text-fg-muted">
+            When the intent status is ALLOW, open Checkout.js with the test (or live) key from{" "}
+            <code className="font-mono text-xs">GET /api/v1/public/config</code> and the returned{" "}
+            <code className="font-mono text-xs">razorpay_order_id</code>. After the payer completes Checkout,
+            POST the signature to <code className="font-mono text-xs">/api/v1/payments/verify</code>.
+          </p>
+          <pre className="overflow-x-auto rounded-xl bg-surface p-4 font-mono text-[11px] leading-relaxed text-fg md:text-xs">{`const intent = await createIntent(); // POST /api/v1/agent/intents
+if (intent.status !== "ALLOW") {
+  throw new Error(intent.decisions?.[0]?.reason_code || intent.status);
+}
+const { razorpay_key_id } = await fetch("${API_URL}/api/v1/public/config").then((r) => r.json());
+const rzp = new window.Razorpay({
+  key: razorpay_key_id,
+  amount: intent.amount_paise,
+  currency: intent.currency,
+  order_id: intent.razorpay_order_id,
+  handler: async (response) => {
+    await fetch("${API_URL}/api/v1/payments/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+      body: JSON.stringify({
+        intent_id: intent.id,
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+      }),
+    });
+  },
+});
+rzp.open();`}</pre>
+          <p className="text-sm text-fg-muted">
+            Or use the console{" "}
+            <Link href="/pay" className="text-link underline-offset-2 hover:underline">
+              New payment
+            </Link>{" "}
+            page, which does this automatically.
+          </p>
+        </div>
       </main>
     </>
   );

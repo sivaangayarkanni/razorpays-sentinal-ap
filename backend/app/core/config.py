@@ -36,8 +36,7 @@ class Settings(BaseSettings):
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""  # optional; if empty, webhook skips verify in test
-    # Default false: when real keys are present, run in test/live mode.
-    # Mock is used automatically when keys are missing, or when this is true.
+    # Ignored. Mock orders are never created; missing keys fail closed.
     razorpay_mock: bool = False
 
     # Bank health defaults

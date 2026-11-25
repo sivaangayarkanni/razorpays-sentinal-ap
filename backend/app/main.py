@@ -21,9 +21,35 @@ from app.services.gate_pipeline import drain_due_jobs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sentinel-ap")
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.4.0"
 
 # Filled during lifespan so /health can report readiness without touching the DB.
+
+async def _redis_health(redis_url: str) -> str:
+    """Cheap Redis ping for /health. Never blocks more than half a second."""
+    url = (redis_url or "").strip()
+    default = "redis://localhost:6379/0"
+    if not url:
+        return "not_configured"
+    client = None
+    try:
+        import redis.asyncio as redis
+
+        client = redis.from_url(url, socket_connect_timeout=0.4, socket_timeout=0.4)
+        ok = await asyncio.wait_for(client.ping(), timeout=0.5)
+        return "ok" if ok else "unavailable"
+    except Exception:
+        if url == default or "localhost" in url or "127.0.0.1" in url:
+            return "not_configured"
+        return "unavailable"
+    finally:
+        if client is not None:
+            try:
+                await asyncio.wait_for(client.aclose(), timeout=0.3)
+            except Exception:
+                pass
+
+
 startup_state: dict[str, Any] = {
     "db": "pending",
     "queue_drainer": False,
@@ -106,7 +132,7 @@ def create_app() -> FastAPI:
             "**Gate 1:** Policy Hard Block (deterministic budgets / SKU lists)\n\n"
             "**Gate 2:** Bank Health Soft-Fail Queue\n\n"
             "**Payments:** Live Razorpay test-mode Orders + Checkout verify + webhooks\n\n"
-            "**v1.3:** layered planes, Intent FSM, health cache/circuit breaker, "
+            "**v1.4:** layered planes, Intent FSM, health cache/circuit breaker, "
             "durable queue drain, structured logs, public architecture diagram.\n\n"
             "Supports `Idempotency-Key` on agent intents and `X-Request-Id` on all responses."
         ),
@@ -178,12 +204,15 @@ def create_app() -> FastAPI:
         db_status = startup_state.get("db") or "pending"
         # Degraded if we booted without a database; still 200 so Render/frontends
         # can distinguish "process is up" from a hung crash-loop.
+        settings = get_settings()
         return {
             "status": "ok" if db_status != "unavailable" else "degraded",
             "service": "sentinel-ap",
             "version": APP_VERSION,
             "db": db_status,
+            "redis": await _redis_health(settings.redis_url),
             "queue_drainer": bool(startup_state.get("queue_drainer")),
+            "razorpay_keys": bool(settings.razorpay_key_id and settings.razorpay_key_secret),
         }
 
     return app

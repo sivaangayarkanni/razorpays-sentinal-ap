@@ -97,8 +97,8 @@ function QueueInner({ token: t }: { token: string }) {
                   <Link href="/bank-health" className="btn-secondary text-xs">
                     Bank Health
                   </Link>
-                  <Link href="/integrate" className="btn-primary text-xs">
-                    Playground
+                  <Link href="/pay" className="btn-primary text-xs">
+                    New payment
                   </Link>
                 </div>
               }
