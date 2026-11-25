@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24
     admin_email: str = "admin@sentinel-ap.local"
-    admin_password: str = "admin123"
+    admin_password: str = ""
+    admin_password_hash: str = ""
 
     # Razorpay (test keys — never hardcode production secrets)
     razorpay_key_id: str = ""

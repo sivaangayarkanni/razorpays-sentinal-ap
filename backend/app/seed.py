@@ -15,6 +15,28 @@ logger = logging.getLogger("sentinel-ap.seed")
 DEMO_API_KEY = "sap_demo000000000000000000000000000001"
 WEAK_PASSWORDS = frozenset({"", "admin123", "changeme", "password", "password123", "admin"})
 
+# Bcrypt hash only — never the plaintext. Used when ADMIN_PASSWORD is unset or weak
+# and ADMIN_PASSWORD_HASH is unset, so a fresh (e.g. ephemeral SQLite) database
+# still accepts the operator password. Override with either env var.
+DEFAULT_ADMIN_PASSWORD_HASH = "$2b$12$v5nHE5Y62E04Fvm5/v7/ruau4aIqnn63q/JFSqOVHTMIR2QNXDeli"
+
+
+def resolve_admin_password_hash() -> tuple[str, str]:
+    """Return (bcrypt_hash, source) for a brand-new admin row.
+
+    Precedence: a set ADMIN_PASSWORD_HASH, then a strong ADMIN_PASSWORD,
+    then DEFAULT_ADMIN_PASSWORD_HASH. Weak values such as admin123 are ignored
+    so a stale Render default cannot lock the console back to a forced change.
+    """
+    settings = get_settings()
+    env_hash = (settings.admin_password_hash or "").strip()
+    if env_hash.startswith("$2"):
+        return env_hash, "ADMIN_PASSWORD_HASH"
+    env_password = (settings.admin_password or "").strip()
+    if env_password and not is_weak_admin_password(env_password):
+        return hash_password(env_password), "ADMIN_PASSWORD"
+    return DEFAULT_ADMIN_PASSWORD_HASH, "embedded_hash"
+
 
 def is_weak_admin_password(password: str | None) -> bool:
     value = (password or "").strip()
@@ -93,25 +115,14 @@ async def seed_demo_data() -> None:
         email = (settings.admin_email or "").strip().lower() or "admin@sentinel-ap.local"
         admin = (await db.execute(select(AdminAccount).where(AdminAccount.email == email))).scalar_one_or_none()
         if admin is None:
-            bootstrap = settings.admin_password or ""
-            weak = is_weak_admin_password(bootstrap)
-            # Hash whatever is configured so first login still works, then force a change if weak.
-            if not bootstrap:
-                bootstrap = "admin123"
-                weak = True
+            password_hash, source = resolve_admin_password_hash()
             admin = AdminAccount(
                 email=email,
-                password_hash=hash_password(bootstrap),
-                must_change_password=weak,
+                password_hash=password_hash,
+                must_change_password=False,
                 password_version=1,
             )
             db.add(admin)
-            if weak:
-                logger.warning(
-                    "Admin account bootstrapped with a weak or default password; "
-                    "the first sign-in must set a new password of 12+ characters"
-                )
-            else:
-                logger.info("Admin account bootstrapped from ADMIN_EMAIL / ADMIN_PASSWORD")
+            logger.info("Admin account bootstrapped from %s (no forced change)", source)
 
         await db.commit()

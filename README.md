@@ -32,7 +32,7 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 | Internship notes | [`docs/INTERNSHIP.md`](docs/INTERNSHIP.md) |
 
 **Admin access**
-- Sign in at `/dashboard` with `ADMIN_EMAIL`. If `ADMIN_PASSWORD` is unset or is the weak default, the first sign-in must set a new 12+ character password.
+- Sign in at `/dashboard` with `ADMIN_EMAIL`. If `ADMIN_PASSWORD` is a strong value, or `ADMIN_PASSWORD_HASH` is set, that is used to bootstrap a fresh database. If both are unset or the password is a weak default, the API uses a baked-in bcrypt hash (no plaintext in the repo) and does not force a password change.
 - Issue agent API keys from the console (`/agents`). Keys are shown once.
 
 ### Production console

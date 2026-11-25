@@ -11,7 +11,7 @@ from sqlalchemy import select, text
 from app.core.config import get_settings
 from app.core import database as db
 from app.models.entities import AdminAccount, Agent
-from app.seed import DEMO_API_KEY, is_weak_admin_password, validate_new_admin_password
+from app.seed import DEMO_API_KEY, DEFAULT_ADMIN_PASSWORD_HASH, is_weak_admin_password, validate_new_admin_password
 
 
 def _restore(env: dict[str, str | None]) -> None:
@@ -69,12 +69,14 @@ async def test_bootstrap_and_admin_flow(tmp_path: Path):
         "ENABLE_DOCS",
         "ADMIN_EMAIL",
         "ADMIN_PASSWORD",
+        "ADMIN_PASSWORD_HASH",
         "JWT_SECRET",
         "RAZORPAY_KEY_ID",
         "RAZORPAY_KEY_SECRET",
         "RAZORPAY_MOCK",
     ]
     prev = {k: os.environ.get(k) for k in keys}
+    os.environ.pop("ADMIN_PASSWORD_HASH", None)
     os.environ.update(
         {
             "DATABASE_URL": sqlite_url,
@@ -84,7 +86,7 @@ async def test_bootstrap_and_admin_flow(tmp_path: Path):
             "ENABLE_DEMO": "false",
             "ENABLE_DOCS": "false",
             "ADMIN_EMAIL": "admin@sentinel-ap.local",
-            "ADMIN_PASSWORD": "admin123",
+            "ADMIN_PASSWORD": "unit-test-admin-pass",
             "JWT_SECRET": "unit-test-jwt-secret-not-for-prod",
             "RAZORPAY_KEY_ID": "",
             "RAZORPAY_KEY_SECRET": "",
@@ -104,29 +106,35 @@ async def test_bootstrap_and_admin_flow(tmp_path: Path):
             assert live_demo == []
             admins = (await session.execute(select(AdminAccount))).scalars().all()
             assert len(admins) == 1
-            assert admins[0].must_change_password is True
+            assert admins[0].must_change_password is False
 
         from app.main import create_app
 
         app = create_app()
         with TestClient(app) as client:
             assert client.get("/docs").status_code in (404, 405)
-            login = client.post(
+            rejected = client.post(
                 "/api/v1/admin/login",
                 json={"email": "admin@sentinel-ap.local", "password": "admin123"},
             )
+            assert rejected.status_code == 401
+
+            login = client.post(
+                "/api/v1/admin/login",
+                json={"email": "admin@sentinel-ap.local", "password": "unit-test-admin-pass"},
+            )
             assert login.status_code == 200, login.text
             body = login.json()
-            assert body["must_change_password"] is True
+            assert body["must_change_password"] is False
             token = body["access_token"]
 
-            blocked = client.get("/api/v1/admin/stats", headers={"Authorization": f"Bearer {token}"})
-            assert blocked.status_code == 403
+            stats_ok = client.get("/api/v1/admin/stats", headers={"Authorization": f"Bearer {token}"})
+            assert stats_ok.status_code == 200
 
             changed = client.post(
                 "/api/v1/admin/change-password",
                 headers={"Authorization": f"Bearer {token}"},
-                json={"current_password": "admin123", "new_password": "unit-test-admin-pass"},
+                json={"current_password": "unit-test-admin-pass", "new_password": "unit-test-admin-pass-2"},
             )
             assert changed.status_code == 200, changed.text
             new_token = changed.json()["access_token"]
@@ -162,6 +170,61 @@ async def test_bootstrap_and_admin_flow(tmp_path: Path):
             )
             assert revoked.status_code == 200
             assert revoked.json()["is_active"] is False
+    finally:
+        try:
+            await db.engine.dispose()
+        except Exception:
+            pass
+        _restore(prev)
+        db.configure_engine(get_settings().database_url)
+
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_uses_embedded_hash_when_password_weak(tmp_path: Path):
+    sqlite_url = f"sqlite+aiosqlite:///{tmp_path / 'fallback.db'}"
+    keys = [
+        "DATABASE_URL",
+        "ALLOW_SQLITE_FALLBACK",
+        "SQLITE_FALLBACK_URL",
+        "ADMIN_EMAIL",
+        "ADMIN_PASSWORD",
+        "ADMIN_PASSWORD_HASH",
+        "JWT_SECRET",
+        "ENABLE_DEMO",
+        "ENABLE_DOCS",
+    ]
+    prev = {k: os.environ.get(k) for k in keys}
+    os.environ.pop("ADMIN_PASSWORD_HASH", None)
+    os.environ.update(
+        {
+            "DATABASE_URL": sqlite_url,
+            "ALLOW_SQLITE_FALLBACK": "true",
+            "SQLITE_FALLBACK_URL": sqlite_url,
+            "ADMIN_EMAIL": "admin@sentinel-ap.local",
+            "ADMIN_PASSWORD": "admin123",
+            "JWT_SECRET": "unit-test-jwt-secret-not-for-prod",
+            "ENABLE_DEMO": "false",
+            "ENABLE_DOCS": "false",
+        }
+    )
+    get_settings.cache_clear()
+    db.configure_engine(get_settings().database_url)
+    try:
+        await db.startup_database()
+        async with db.AsyncSessionLocal() as session:
+            admins = (await session.execute(select(AdminAccount))).scalars().all()
+            assert len(admins) == 1
+            assert admins[0].must_change_password is False
+            assert admins[0].password_hash == DEFAULT_ADMIN_PASSWORD_HASH
+        from app.main import create_app
+
+        app = create_app()
+        with TestClient(app) as client:
+            assert client.post(
+                "/api/v1/admin/login",
+                json={"email": "admin@sentinel-ap.local", "password": "admin123"},
+            ).status_code == 401
     finally:
         try:
             await db.engine.dispose()
