@@ -14,8 +14,12 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://sentinel:sentinel@localhost:5432/sentinel_ap"
     database_url_sync: str = "postgresql://sentinel:sentinel@localhost:5432/sentinel_ap"
+    # If Postgres is unreachable (common on Render free tier with no DB),
+    # fall back to a local SQLite file so the API can still boot.
+    allow_sqlite_fallback: bool = True
+    sqlite_fallback_url: str = "sqlite+aiosqlite:///./sentinel_ap.db"
 
-    # Redis
+    # Redis (optional for the web API — required only by the ARQ worker)
     redis_url: str = "redis://localhost:6379/0"
 
     # Auth
@@ -29,14 +33,16 @@ class Settings(BaseSettings):
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""  # optional; if empty, webhook skips verify in test
-    razorpay_mock: bool = True  # use mock when keys empty
+    # Default false: when real keys are present, run in test/live mode.
+    # Mock is used automatically when keys are missing, or when this is true.
+    razorpay_mock: bool = False
 
     # Bank health defaults
     bank_health_threshold: float = 0.95
     bank_health_mock_success_rate: float = 0.98
 
     # CORS
-    cors_origins: str = "http://localhost:3000,http://localhost:3001"
+    cors_origins: str = "http://localhost:3000,http://localhost:3001,https://sentinel-ap.vercel.app"
 
     def model_post_init(self, __context) -> None:
         """Normalize Render/Heroku-style postgres URLs for asyncpg + sync drivers."""

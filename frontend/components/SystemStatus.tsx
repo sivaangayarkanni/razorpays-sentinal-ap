@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Activity } from "lucide-react";
-import { API_URL } from "@/lib/api";
+import { API_URL, wakeApi } from "@/lib/api";
 
-type Health = { status?: string; version?: string };
+type Health = { status?: string; version?: string; db?: string };
 type Config = { mock?: boolean; api_mode?: string };
 
 export function SystemStatus() {
@@ -14,6 +14,19 @@ export function SystemStatus() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLabel("Waking API…");
+      const ready = await wakeApi({
+        attempts: 5,
+        onStatus: (msg) => {
+          if (!cancelled) setLabel(msg);
+        },
+      });
+      if (cancelled) return;
+      if (!ready) {
+        setOk(false);
+        setLabel("API unreachable");
+        return;
+      }
       try {
         const [hRes, cRes] = await Promise.all([
           fetch(`${API_URL}/health`, { cache: "no-store" }),
@@ -24,8 +37,9 @@ export function SystemStatus() {
         const config = cRes.ok ? ((await cRes.json()) as Config) : { mock: true, api_mode: "?" };
         if (cancelled) return;
         const mode = config.mock ? "mock" : config.api_mode || "live";
+        const db = health.db && health.db !== "postgres" ? ` · ${health.db}` : "";
         setOk(health.status === "ok");
-        setLabel(`API ${health.version || "?"} · ${mode}`);
+        setLabel(`API ${health.version || "?"} · ${mode}${db}`);
       } catch {
         if (!cancelled) {
           setOk(false);

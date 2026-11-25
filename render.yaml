@@ -32,8 +32,14 @@ services:
         value: "false"
       - key: RAZORPAY_MOCK
         value: "false"
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
+      - key: ALLOW_SQLITE_FALLBACK
+        value: "true"
       - key: BANK_HEALTH_THRESHOLD
         value: "0.95"
       - key: BANK_HEALTH_MOCK_SUCCESS_RATE
@@ -41,7 +47,7 @@ services:
       - key: ADMIN_EMAIL
         value: admin@sentinel-ap.local
       - key: ADMIN_PASSWORD
-        value: admin123
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS

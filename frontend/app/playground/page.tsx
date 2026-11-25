@@ -20,6 +20,7 @@ import {
   PublicConfig,
   isRealRazorpayOrder,
   loadRazorpayCheckout,
+  wakeApi,
 } from "@/lib/api";
 
 const DEMO_KEY = "sap_demo000000000000000000000000000001";
@@ -74,6 +75,7 @@ export default function PlaygroundPage() {
   const [log, setLog] = useState<string[]>([]);
   const [activeScenario, setActiveScenario] = useState<string | null>(null);
   const [config, setConfig] = useState<PublicConfig | null>(null);
+  const [apiStatus, setApiStatus] = useState<"checking" | "ready" | "unreachable">("checking");
   const [paymentSuccess, setPaymentSuccess] = useState<{
     payment_id: string;
     order_id: string;
@@ -83,12 +85,41 @@ export default function PlaygroundPage() {
   const push = (m: string) => setLog((l) => [m, ...l].slice(0, 20));
 
   useEffect(() => {
-    api
-      .publicConfig()
-      .then(setConfig)
-      .catch(() =>
-        setConfig({ razorpay_key_id: "", mock: true, api_mode: "mock" })
-      );
+    let cancelled = false;
+    (async () => {
+      const ready = await wakeApi({
+        attempts: 5,
+        onStatus: (msg) => {
+          if (!cancelled && /waking/i.test(msg)) setApiStatus("checking");
+        },
+      });
+      if (cancelled) return;
+      if (!ready) {
+        setApiStatus("unreachable");
+        setConfig(null);
+        setError(
+          `Failed to reach the API at ${API_URL}. The Render service may still be starting, or it may be down. Wait a few seconds and refresh.`
+        );
+        return;
+      }
+      try {
+        const cfg = await api.publicConfig();
+        if (cancelled) return;
+        setConfig(cfg);
+        setApiStatus("ready");
+        setError("");
+      } catch {
+        if (cancelled) return;
+        setConfig(null);
+        setApiStatus("unreachable");
+        setError(
+          `Failed to reach the API at ${API_URL}. The Render service may still be starting, or it may be down. Wait a few seconds and refresh.`
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const ensureAdmin = async () => {
@@ -248,18 +279,26 @@ export default function PlaygroundPage() {
   };
 
   const modeLabel =
-    config?.mock || config?.api_mode === "mock"
-      ? "Mock mode"
-      : config?.api_mode === "test"
-        ? "Test mode · Razorpay"
-        : config?.api_mode === "live"
-          ? "Live mode · Razorpay"
-          : "Razorpay";
+    apiStatus === "checking" || !config
+      ? apiStatus === "unreachable"
+        ? "API unreachable"
+        : "Connecting to API…"
+      : config.mock || config.api_mode === "mock"
+        ? "Mock mode"
+        : config.api_mode === "test"
+          ? "Test mode · Razorpay"
+          : config.api_mode === "live"
+            ? "Live mode · Razorpay"
+            : "Razorpay";
 
   const modeBadgeClass =
-    config?.mock || config?.api_mode === "mock"
-      ? "bg-slate-500/20 text-slate-300 ring-slate-500/30"
-      : "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30";
+    apiStatus !== "ready" || !config
+      ? apiStatus === "unreachable"
+        ? "bg-rose-500/15 text-rose-300 ring-rose-500/30"
+        : "bg-amber-500/15 text-amber-200 ring-amber-500/30"
+      : config.mock || config.api_mode === "mock"
+        ? "bg-slate-500/20 text-slate-300 ring-slate-500/30"
+        : "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30";
 
   return (
     <>
@@ -284,7 +323,7 @@ export default function PlaygroundPage() {
             <CreditCard className="h-3 w-3" aria-hidden />
             {modeLabel}
           </span>
-          {!config?.mock && (
+          {apiStatus === "ready" && config && !config.mock && (
             <span className="text-[11px] text-slate-500">
               Test card: 4111 1111 1111 1111 · any future expiry · any CVV ·{" "}
               <a

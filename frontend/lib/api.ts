@@ -1,5 +1,100 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRetryableNetworkError(err: unknown): boolean {
+  if (!err) return false;
+  const name = (err as { name?: string }).name || "";
+  const message = String((err as { message?: string }).message || err);
+  return (
+    name === "AbortError" ||
+    name === "TimeoutError" ||
+    /fail(ed)? to fetch|networkerror|aborted|timeout|load failed/i.test(message)
+  );
+}
+
+export async function wakeApi(opts?: {
+  attempts?: number;
+  onStatus?: (msg: string) => void;
+}): Promise<boolean> {
+  const attempts = opts?.attempts ?? 5;
+  const delays = [0, 2000, 4000, 8000, 12000];
+  for (let i = 0; i < attempts; i++) {
+    if (delays[i]) {
+      opts?.onStatus?.("Waking API… the Render service may be starting.");
+      await sleep(delays[i]);
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), i === 0 ? 12_000 : 90_000);
+    try {
+      const res = await fetch(`${API_URL}/health`, { cache: "no-store", signal: ctrl.signal });
+      if (res.ok) {
+        opts?.onStatus?.("API is ready");
+        return true;
+      }
+    } catch {
+      // retry
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  opts?.onStatus?.("API unreachable");
+  return false;
+}
+
+async function request<T>(
+  path: string,
+  opts: RequestInit & { token?: string; apiKey?: string } = {}
+): Promise<T> {
+  const { token, apiKey, headers, ...rest } = opts;
+  const h: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(headers as Record<string, string>),
+  };
+  if (token) h.Authorization = `Bearer ${token}`;
+  if (apiKey) h["X-API-Key"] = apiKey;
+
+  const attempts = 4;
+  let lastError: unknown = null;
+  for (let i = 0; i < attempts; i++) {
+    if (i === 1) {
+      await wakeApi({ attempts: 3 });
+    } else if (i > 1) {
+      await sleep(2000 * i);
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), i === 0 ? 15_000 : 90_000);
+    try {
+      const res = await fetch(`${API_URL}${path}`, {
+        ...rest,
+        headers: h,
+        cache: "no-store",
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        const detail = (err as { detail?: unknown; message?: unknown }).detail
+          ?? (err as { message?: unknown }).message
+          ?? err;
+        const msg = typeof detail === "string" ? detail : JSON.stringify(detail);
+        throw new Error(msg);
+      }
+      return res.json();
+    } catch (e) {
+      lastError = e;
+      if (!isRetryableNetworkError(e)) {
+        throw e instanceof Error ? e : new Error(String(e));
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  const reason = lastError instanceof Error ? lastError.message : "network error";
+  throw new Error(
+    `Failed to reach the API at ${API_URL} (${reason}). The backend may still be starting, or it may be down. Wait a few seconds and retry.`
+  );
+}
+
 export type IntentResult = {
   id: string;
   status: string;
@@ -36,26 +131,6 @@ export type PaymentVerifyResult = {
   razorpay_payment_id?: string;
   message: string;
 };
-
-async function request<T>(
-  path: string,
-  opts: RequestInit & { token?: string; apiKey?: string } = {}
-): Promise<T> {
-  const { token, apiKey, headers, ...rest } = opts;
-  const h: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(headers as Record<string, string>),
-  };
-  if (token) h.Authorization = `Bearer ${token}`;
-  if (apiKey) h["X-API-Key"] = apiKey;
-
-  const res = await fetch(`${API_URL}${path}`, { ...rest, headers: h, cache: "no-store" });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || JSON.stringify(err));
-  }
-  return res.json();
-}
 
 export const api = {
   login: (email: string, password: string) =>

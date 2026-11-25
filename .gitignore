@@ -28,3 +28,6 @@ frontend/.vercel
 frontend/.env.local
 frontend/.env.production
 *.tsbuildinfo
+
+# generated locally — never commit
+ADMIN_PASSWORD.txt

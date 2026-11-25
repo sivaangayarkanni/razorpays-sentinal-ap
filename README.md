@@ -32,8 +32,8 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 | Internship notes | [`docs/INTERNSHIP.md`](docs/INTERNSHIP.md) |
 
 **Demo credentials**
-- Admin: `admin@sentinel-ap.local` / `admin123`
-- Agent API key: `sap_demo000000000000000000000000000001`
+- Admin email defaults to `admin@sentinel-ap.local`. Set `ADMIN_PASSWORD` (and preferably `JWT_SECRET`) on the API host — do not publish the password in this README.
+- Agent API key (seeded demo agent): `sap_demo000000000000000000000000000001`
 
 ### Judge demo script (with real Razorpay test Checkout)
 
@@ -50,7 +50,7 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 8. Click **Restore bank health & clear queue** → manual retry attempts CLEARED when rail recovers.
 9. Open **Dashboard** (admin login) — decision feed + audit trail for `razorpay.order_created` / `razorpay.payment_verified`.
 
-> **Worker note:** Soft-fail enqueue (`QUEUED`) works without the ARQ worker. Automatic background retries need the Render worker service (Starter plan). Manual **Restore & clear** from Playground / Queue admin still clears jobs when bank health recovers. If the worker is suspended for billing, judges can still demo Gate 2 via enqueue + manual retry.
+> **Worker note:** Soft-fail enqueue (`QUEUED`) works without a separate ARQ worker. The API now also runs an in-process drain loop (every 15s) so queued jobs auto-retry on a single free-tier web service. A dedicated Render worker is still optional for isolation. Manual **Restore & clear** from Playground / Queue admin still works immediately.
 
 ### Razorpay test keys setup
 

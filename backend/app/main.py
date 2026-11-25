@@ -1,6 +1,7 @@
 """Sentinel-AP FastAPI application entrypoint."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
@@ -12,26 +13,73 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api import admin, agent, metrics, payments, webhooks
+from app.core import database as db
 from app.core.config import get_settings
-from app.core.database import Base, engine
 from app.middleware.request_id import RequestIdMiddleware, get_request_id
-from app.seed import seed_demo_data
+from app.services.gate_pipeline import drain_due_jobs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sentinel-ap")
 
 APP_VERSION = "1.3.0"
 
+# Filled during lifespan so /health can report readiness without touching the DB.
+startup_state: dict[str, Any] = {
+    "db": "pending",
+    "queue_drainer": False,
+    "error": None,
+}
+
+
+async def _queue_drain_loop() -> None:
+    """In-process outbox pump so soft-fail jobs drain without a separate ARQ worker."""
+    while True:
+        try:
+            async with db.AsyncSessionLocal() as session:
+                results = await drain_due_jobs(session, limit=20)
+                await session.commit()
+                if results:
+                    logger.info("in-process drain processed %s job(s)", len(results))
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001
+            logger.exception("in-process drain failed")
+        await asyncio.sleep(15)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings = get_settings()
     logger.info("Starting %s (%s) v%s", settings.app_name, settings.app_env, APP_VERSION)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await seed_demo_data()
+    drain_task: asyncio.Task | None = None
+    try:
+        backend = await db.startup_database()
+        startup_state["db"] = backend
+        startup_state["error"] = None
+    except Exception as exc:  # noqa: BLE001
+        # Last resort: do not crash-loop the process. /health stays up so
+        # Render and the frontend can see a clear error instead of hanging.
+        logger.exception("database startup failed; serving in degraded mode")
+        startup_state["db"] = "unavailable"
+        startup_state["error"] = f"{type(exc).__name__}: {exc}"
+
+    if startup_state["db"] != "unavailable":
+        drain_task = asyncio.create_task(_queue_drain_loop(), name="sentinel-queue-drain")
+        startup_state["queue_drainer"] = True
+
     yield
-    await engine.dispose()
+
+    if drain_task is not None:
+        drain_task.cancel()
+        try:
+            await drain_task
+        except asyncio.CancelledError:
+            pass
+        startup_state["queue_drainer"] = False
+    try:
+        await db.engine.dispose()
+    except Exception:  # noqa: BLE001
+        logger.warning("engine dispose failed", exc_info=True)
 
 
 def _error_body(request: Request, *, status_code: int, detail: Any) -> dict[str, Any]:
@@ -124,7 +172,16 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["Public"])
     async def health():
-        return {"status": "ok", "service": "sentinel-ap", "version": APP_VERSION}
+        db_status = startup_state.get("db") or "pending"
+        # Degraded if we booted without a database; still 200 so Render/frontends
+        # can distinguish "process is up" from a hung crash-loop.
+        return {
+            "status": "ok" if db_status != "unavailable" else "degraded",
+            "service": "sentinel-ap",
+            "version": APP_VERSION,
+            "db": db_status,
+            "queue_drainer": bool(startup_state.get("queue_drainer")),
+        }
 
     return app
 
