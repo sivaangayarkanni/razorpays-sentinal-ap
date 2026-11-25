@@ -80,12 +80,12 @@ export function LoginForm({
     <div className="mx-auto max-w-md px-4 page-enter">
       <form onSubmit={submit} className="glass-strong mt-14 space-y-5 p-8">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sentinel-600/20 text-sentinel-300 ring-1 ring-sentinel-500/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sentinel-50 text-sentinel-700 ring-1 ring-sentinel-500/30">
             <Lock className="h-5 w-5" aria-hidden />
           </div>
           <div>
             <h2 className="text-xl font-bold tracking-tight">Sign in</h2>
-            <p className="mt-0.5 text-sm text-slate-400">Admin console for policies, keys, and rail health</p>
+            <p className="mt-0.5 text-sm text-fg-muted">Admin console for policies, keys, and rail health</p>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export function LoginForm({
         </label>
 
         {err && (
-          <p role="alert" className="rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          <p role="alert" className="rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-600">
             {err}
           </p>
         )}
@@ -168,14 +168,14 @@ export function ChangePasswordForm({
     <div className="mx-auto max-w-md px-4 page-enter">
       <form onSubmit={submit} className="glass-strong mt-14 space-y-5 p-8">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-plum-500/20 text-plum-200 ring-1 ring-plum-400/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lavender-50 text-lavender-700 ring-1 ring-lavender-500/30">
             <Lock className="h-5 w-5" aria-hidden />
           </div>
           <div>
             <h2 className="text-xl font-bold tracking-tight">
               {forced ? "Set a new admin password" : "Change password"}
             </h2>
-            <p className="mt-0.5 text-sm text-slate-400">
+            <p className="mt-0.5 text-sm text-fg-muted">
               {forced
                 ? "The current password is a default or is too weak. Choose a password of at least 12 characters to continue."
                 : "Use a unique password of at least 12 characters."}
@@ -220,7 +220,7 @@ export function ChangePasswordForm({
         </label>
 
         {err && (
-          <p role="alert" className="rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          <p role="alert" className="rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-600">
             {err}
           </p>
         )}

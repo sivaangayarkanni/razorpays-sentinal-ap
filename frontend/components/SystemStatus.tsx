@@ -55,10 +55,10 @@ export function SystemStatus() {
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${
         ok === true
-          ? "bg-sentinel-500/10 text-sentinel-200 ring-sentinel-500/30"
+          ? "bg-sentinel-50 text-sentinel-700 ring-sentinel-500/30"
           : ok === false
-            ? "bg-rose-500/10 text-rose-300 ring-rose-500/30"
-            : "bg-slate-500/10 text-slate-400 ring-slate-500/30"
+            ? "bg-rose-50 text-rose-600 ring-rose-500/30"
+            : "bg-surface text-fg-muted ring-line"
       }`}
       title={API_URL}
     >

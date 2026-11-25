@@ -54,10 +54,10 @@ export function Nav() {
   const ctaLabel = signedIn ? "Console" : "Sign in";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-ink/85 backdrop-blur-xl nav-glow">
+    <header className="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur-xl nav-glow">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="group flex items-center gap-2.5 font-bold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sentinel-400 to-coral-deep text-white shadow-glow ring-1 ring-white/10 transition group-hover:brightness-110">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sentinel-400 to-link text-white shadow-glow ring-1 ring-white/30 transition group-hover:brightness-110">
             <Shield className="h-4 w-4" aria-hidden />
           </span>
           <span className="text-[15px]">
@@ -78,8 +78,8 @@ export function Nav() {
                 className={clsx(
                   "rounded-lg px-3 py-1.5 text-sm transition",
                   active
-                    ? "bg-sentinel-500/15 text-sentinel-100 shadow-sm ring-1 ring-sentinel-500/25"
-                    : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
+                    ? "bg-surface text-fg shadow-sm ring-1 ring-line"
+                    : "text-fg-muted hover:bg-surface hover:text-fg"
                 )}
                 aria-current={active ? "page" : undefined}
               >
@@ -106,7 +106,7 @@ export function Nav() {
       </div>
 
       {open && (
-        <div className="border-t border-white/[0.08] bg-ink/95 lg:hidden">
+        <div className="border-t border-line bg-white lg:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3" aria-label="Mobile">
             {links.map((l) => {
               const active = path === l.href;
@@ -116,7 +116,7 @@ export function Nav() {
                   href={l.href}
                   className={clsx(
                     "rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                    active ? "bg-sentinel-500/15 text-sentinel-100" : "text-slate-300 hover:bg-white/[0.04]"
+                    active ? "bg-surface text-fg" : "text-fg-muted hover:bg-surface"
                   )}
                   aria-current={active ? "page" : undefined}
                 >

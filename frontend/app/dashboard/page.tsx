@@ -49,15 +49,15 @@ function DashboardInner({ token: t }: { token: string }) {
 
   const cards = stats
     ? [
-        { label: "Total", value: stats.total_intents, tone: "text-white" },
-        { label: "Allowed", value: stats.allowed, tone: "text-amber-300" },
-        { label: "Hard Blocked", value: stats.hard_blocked, tone: "text-rose-300" },
-        { label: "Queued", value: stats.queued, tone: "text-coral-300" },
-        { label: "Cleared", value: stats.cleared, tone: "text-plum-300" },
+        { label: "Total", value: stats.total_intents, tone: "text-fg" },
+        { label: "Allowed", value: stats.allowed, tone: "text-sentinel-600" },
+        { label: "Hard Blocked", value: stats.hard_blocked, tone: "text-rose-600" },
+        { label: "Queued", value: stats.queued, tone: "text-amber-600" },
+        { label: "Cleared", value: stats.cleared, tone: "text-link" },
         {
           label: "Bank Rail",
           value: `${((stats.bank_success_rate as number) * 100).toFixed(1)}%`,
-          tone: stats.bank_is_degraded ? "text-coral-300" : "text-amber-300",
+          tone: stats.bank_is_degraded ? "text-amber-600" : "text-sentinel-600",
           hint: stats.bank_is_degraded ? "Degraded" : "Healthy",
         },
       ]
@@ -116,14 +116,14 @@ function DashboardInner({ token: t }: { token: string }) {
 
           {!loading &&
             intents.map((intent) => (
-              <article key={intent.id} className="panel !p-4 transition hover:border-white/15">
+              <article key={intent.id} className="panel !p-4 transition hover:border-line">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-3">
                     <StatusBadge status={intent.status} />
-                    <span className="font-mono text-sm text-sentinel-300">{intent.sku}</span>
+                    <span className="font-mono text-sm text-sentinel-700">{intent.sku}</span>
                     <span className="font-semibold tabular-nums">{formatINR(intent.amount_paise)}</span>
                   </div>
-                  <time className="text-xs text-slate-500" dateTime={intent.created_at}>
+                  <time className="text-xs text-fg-subtle" dateTime={intent.created_at}>
                     {new Date(intent.created_at).toLocaleString()}
                   </time>
                 </div>
@@ -131,21 +131,21 @@ function DashboardInner({ token: t }: { token: string }) {
                   {intent.decisions.map((d, idx) => (
                     <div
                       key={idx}
-                      className="min-w-[180px] flex-1 rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5 text-xs"
+                      className="min-w-[180px] flex-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs"
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold uppercase tracking-wide text-slate-300">{d.gate}</span>
-                        <span className="text-slate-600">→</span>
+                        <span className="font-semibold uppercase tracking-wide text-fg-muted">{d.gate}</span>
+                        <span className="text-fg-subtle">→</span>
                         <StatusBadge status={d.outcome} />
                       </div>
                       {d.reason_message && (
-                        <div className="mt-1.5 text-slate-400">{d.reason_message}</div>
+                        <div className="mt-1.5 text-fg-muted">{d.reason_message}</div>
                       )}
                     </div>
                   ))}
                 </div>
                 {intent.razorpay_order_id && (
-                  <div className="mt-2 font-mono text-xs text-amber-400/80">
+                  <div className="mt-2 font-mono text-xs text-sentinel-700">
                     order: {intent.razorpay_order_id}
                   </div>
                 )}

@@ -27,9 +27,9 @@ const GUIDES: Guide[] = [
     name: "Policy Scout",
     role: "Gate 1 guide",
     emoji: "🧭",
-    accent: "text-rose-200",
+    accent: "text-rose-600",
     ring: "ring-rose-400/40",
-    bg: "from-rose-500/25 to-rose-900/20",
+    bg: "from-rose-100 to-rose-50",
     tip: "I hard-block overspend & bad SKUs before money moves. Check Dual-gate → Gate 1.",
     section: "gates",
   },
@@ -38,9 +38,9 @@ const GUIDES: Guide[] = [
     name: "Rail Watcher",
     role: "Gate 2 guide",
     emoji: "📡",
-    accent: "text-amber-200",
+    accent: "text-amber-700",
     ring: "ring-amber-400/40",
-    bg: "from-amber-500/25 to-amber-900/20",
+    bg: "from-amber-100 to-amber-50",
     tip: "Bank rails looking shaky? I soft-fail to a queue — never lose the intent.",
     section: "gates",
   },
@@ -49,9 +49,9 @@ const GUIDES: Guide[] = [
     name: "Razorpay Runner",
     role: "Dispatch guide",
     emoji: "⚡",
-    accent: "text-amber-200",
-    ring: "ring-amber-400/40",
-    bg: "from-amber-500/25 to-amber-900/20",
+    accent: "text-lavender-700",
+    ring: "ring-sentinel-400/40",
+    bg: "from-sentinel-100 to-sentinel-50",
     tip: "When both gates pass, I mint Razorpay Orders in paise.",
     section: "cta",
     ctaHref: "/integrate",
@@ -62,9 +62,9 @@ const GUIDES: Guide[] = [
     name: "Audit Buddy",
     role: "Pitch & trail",
     emoji: "📋",
-    accent: "text-sentinel-200",
-    ring: "ring-sentinel-400/40",
-    bg: "from-sentinel-500/25 to-sentinel-900/20",
+    accent: "text-lavender-700",
+    ring: "ring-lavender-400/40",
+    bg: "from-lavender-100 to-lavender-50",
     tip: "Every decision leaves a trail. Scroll the pitch deck for the story in 90 seconds.",
     section: "pitch",
     ctaHref: "/integrate",
@@ -111,7 +111,7 @@ function AvatarCircle({
       <span aria-hidden>{guide.emoji}</span>
       {active && (
         <span
-          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-ink bg-sentinel-400 animate-pulse-soft"
+          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-sentinel-400 animate-pulse-soft"
           aria-hidden
         />
       )}
@@ -163,7 +163,7 @@ export function GuideAgents() {
         role="region"
         aria-label="Sentinel guide assistants"
       >
-        <p className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <p className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-fg-subtle">
           Your guides on this tour
         </p>
         <div className="flex flex-wrap items-start justify-center gap-4 md:gap-6">
@@ -180,15 +180,15 @@ export function GuideAgents() {
               className={clsx(
                 "group flex w-[7.5rem] flex-col items-center gap-2 rounded-2xl border p-3 text-center transition",
                 activeId === g.id && !dismissed
-                  ? "border-sentinel-500/35 bg-sentinel-500/10 shadow-glow"
-                  : "border-white/8 bg-white/[0.03] hover:border-white/15 hover:bg-white/[0.05]"
+                  ? "border-sentinel-500/40 bg-sentinel-50 shadow-card"
+                  : "border-line bg-surface hover:border-line hover:bg-surface"
               )}
               aria-pressed={activeId === g.id && !dismissed}
               aria-label={`${g.name} — ${g.role}. ${g.tip}`}
             >
               <AvatarCircle guide={g} size="lg" active={activeId === g.id && !dismissed} />
               <span className={clsx("text-xs font-semibold", g.accent)}>{g.name}</span>
-              <span className="text-[10px] leading-tight text-slate-500">{g.role}</span>
+              <span className="text-[10px] leading-tight text-fg-subtle">{g.role}</span>
             </button>
           ))}
         </div>
@@ -201,15 +201,15 @@ export function GuideAgents() {
                   {active.emoji}
                 </span>
                 <span className={clsx("text-xs font-bold", active.accent)}>{active.name}</span>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                <span className="text-[10px] uppercase tracking-wider text-fg-subtle">
                   · {active.role}
                 </span>
               </div>
-              <p className="text-slate-200">{active.tip}</p>
+              <p className="text-fg">{active.tip}</p>
               {active.ctaHref && (
                 <Link
                   href={active.ctaHref}
-                  className="mt-2 inline-flex text-xs font-semibold text-sentinel-300 hover:text-sentinel-200"
+                  className="mt-2 inline-flex text-xs font-semibold text-sentinel-700 hover:text-sentinel-700"
                 >
                   {active.ctaLabel} →
                 </Link>
@@ -232,19 +232,19 @@ export function GuideAgents() {
                   <AvatarCircle guide={active} size="sm" active />
                   <div>
                     <p className={clsx("text-xs font-bold", active.accent)}>{active.name}</p>
-                    <p className="text-[10px] text-slate-500">Watching · {section}</p>
+                    <p className="text-[10px] text-fg-subtle">Watching · {section}</p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="rounded-lg p-1 text-slate-500 hover:bg-white/5 hover:text-white"
+                  className="rounded-lg p-1 text-fg-subtle hover:bg-surface hover:text-fg"
                   aria-label="Dismiss tip"
                   onClick={() => setDismissed(true)}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <p className="text-xs leading-relaxed text-slate-300">{active.tip}</p>
+              <p className="text-xs leading-relaxed text-fg-muted">{active.tip}</p>
             </div>
           </div>
         )}
@@ -268,8 +268,8 @@ export function GuideAgents() {
             className={clsx(
               "flex h-11 w-11 items-center justify-center rounded-full border shadow-glow transition",
               dockOpen
-                ? "border-sentinel-500/40 bg-sentinel-600/20 text-sentinel-200"
-                : "border-white/15 bg-ink-900/90 text-slate-300 hover:border-sentinel-500/40"
+                ? "border-sentinel-500/40 bg-sentinel-50 text-sentinel-700"
+                : "border-line bg-white text-fg-muted hover:border-sentinel-500/40"
             )}
             aria-label={dockOpen ? "Hide guide dock" : "Show guide assistants"}
             aria-expanded={dockOpen}
@@ -299,7 +299,7 @@ export function SectionCoach({
   return (
     <div
       className={clsx(
-        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1",
+        "inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1",
         className
       )}
       aria-label={`${guide.name} tip`}

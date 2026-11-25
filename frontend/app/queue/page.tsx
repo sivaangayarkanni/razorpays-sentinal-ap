@@ -123,24 +123,24 @@ function QueueInner({ token: t }: { token: string }) {
                       <td>
                         <StatusBadge status={j.status} />
                       </td>
-                      <td className="font-mono text-xs text-slate-400">{j.id.slice(0, 8)}…</td>
+                      <td className="font-mono text-xs text-fg-muted">{j.id.slice(0, 8)}…</td>
                       <td>
                         {j.intent ? (
                           <span>
-                            <span className="font-mono text-sentinel-300">{j.intent.sku}</span>
-                            <span className="text-slate-500"> · </span>
+                            <span className="font-mono text-sentinel-700">{j.intent.sku}</span>
+                            <span className="text-fg-subtle"> · </span>
                             <span className="tabular-nums">{formatINR(j.intent.amount_paise)}</span>
                           </span>
                         ) : (
-                          <span className="text-slate-600">—</span>
+                          <span className="text-fg-subtle">—</span>
                         )}
                         {j.last_error && (
-                          <div className="mt-0.5 max-w-xs truncate text-xs text-rose-300/80">
+                          <div className="mt-0.5 max-w-xs truncate text-xs text-rose-600/80">
                             {j.last_error}
                           </div>
                         )}
                       </td>
-                      <td className="tabular-nums text-slate-400">
+                      <td className="tabular-nums text-fg-muted">
                         {j.attempts}/{j.max_attempts}
                       </td>
                       <td className="text-right">
@@ -154,7 +154,7 @@ function QueueInner({ token: t }: { token: string }) {
                             {retrying === j.id ? "Retrying…" : "Retry"}
                           </button>
                         ) : (
-                          <span className="text-xs text-slate-600">—</span>
+                          <span className="text-xs text-fg-subtle">—</span>
                         )}
                       </td>
                     </tr>

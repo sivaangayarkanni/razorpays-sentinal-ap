@@ -82,14 +82,14 @@ function AgentsInner({ token }: { token: string }) {
 
         {freshKey && (
           <div className="panel mt-6 border border-sentinel-500/30">
-            <div className="flex items-center gap-2 text-sm font-semibold text-sentinel-200">
+            <div className="flex items-center gap-2 text-sm font-semibold text-sentinel-700">
               <KeyRound className="h-4 w-4" aria-hidden />
               New key for {freshKey.name}
             </div>
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-fg-muted">
               Store this key in your agent’s secret manager. We only keep a hash.
             </p>
-            <pre className="mt-3 overflow-x-auto rounded-xl bg-black/40 p-3 font-mono text-xs text-sentinel-100">
+            <pre className="mt-3 overflow-x-auto rounded-xl bg-surface p-3 font-mono text-xs text-fg">
               {freshKey.api_key}
             </pre>
             <button
@@ -120,7 +120,7 @@ function AgentsInner({ token }: { token: string }) {
         </form>
 
         <div className="panel mt-6">
-          <h2 className="mb-3 font-semibold text-white">Issued keys</h2>
+          <h2 className="mb-3 font-semibold text-fg">Issued keys</h2>
           {!loading && agents.length === 0 ? (
             <EmptyState title="No agents yet" description="Create a key to let an agent call the intents API." />
           ) : (
@@ -138,10 +138,10 @@ function AgentsInner({ token }: { token: string }) {
                 <tbody>
                   {agents.map((a) => (
                     <tr key={a.id}>
-                      <td className="font-medium text-white">{a.name}</td>
-                      <td className="font-mono text-xs text-sentinel-200">{a.api_key_prefix}…</td>
+                      <td className="font-medium text-fg">{a.name}</td>
+                      <td className="font-mono text-xs text-sentinel-700">{a.api_key_prefix}…</td>
                       <td>{a.is_active ? "Active" : "Revoked"}</td>
-                      <td className="text-slate-400">{new Date(a.created_at).toLocaleString()}</td>
+                      <td className="text-fg-muted">{new Date(a.created_at).toLocaleString()}</td>
                       <td className="text-right">
                         {a.is_active && (
                           <button type="button" className="btn-danger !px-2.5 !py-1 text-xs" onClick={() => revoke(a.id)}>

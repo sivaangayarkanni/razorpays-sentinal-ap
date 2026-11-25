@@ -30,8 +30,8 @@ const GATES = [
     title: "AI Logic & Policy Guardrail",
     tone: "Hard Block",
     icon: Ban,
-    accent: "border-rose-500/25 from-rose-500/15 via-transparent to-transparent",
-    iconCls: "text-rose-300 bg-rose-500/10 ring-rose-500/25",
+    accent: "border-rose-500/25 from-rose-500/10 via-transparent to-transparent",
+    iconCls: "text-rose-600 bg-rose-50 ring-rose-500/25",
     coach: "scout" as const,
     points: [
       "Deterministic budget caps (per-txn + daily)",
@@ -44,8 +44,8 @@ const GATES = [
     title: "Bank Uptime Guardrail",
     tone: "Soft-Fail Queue",
     icon: Gauge,
-    accent: "border-amber-500/25 from-amber-500/15 via-transparent to-transparent",
-    iconCls: "text-amber-300 bg-amber-500/10 ring-amber-500/25",
+    accent: "border-amber-500/30 from-amber-50 via-transparent to-transparent",
+    iconCls: "text-amber-700 bg-amber-50 ring-amber-500/30",
     coach: "watcher" as const,
     points: [
       "Pre-flight bank health ping",
@@ -58,8 +58,8 @@ const GATES = [
     title: "Razorpay Dispatch",
     tone: "PASS → Pay",
     icon: Zap,
-    accent: "border-amber-500/25 from-amber-500/15 via-transparent to-transparent",
-    iconCls: "text-amber-300 bg-amber-500/10 ring-amber-500/25",
+    accent: "border-sentinel-500/25 from-sentinel-50 via-transparent to-transparent",
+    iconCls: "text-sentinel-700 bg-sentinel-50 ring-sentinel-500/25",
     coach: "runner" as const,
     points: [
       "Amounts in paise (INR)",
@@ -88,26 +88,30 @@ export default function HomePage() {
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -left-24 top-24 h-64 w-64 rounded-full bg-sentinel-500/10 blur-3xl"
+            className="pointer-events-none absolute -left-24 top-24 h-64 w-64 rounded-full bg-link/15 blur-3xl"
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -right-16 top-40 h-48 w-48 rounded-full bg-plum/10 blur-3xl"
+            className="pointer-events-none absolute left-1/2 top-10 h-56 w-56 -translate-x-1/2 rounded-full bg-sentinel-400/15 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -right-16 top-40 h-48 w-48 rounded-full bg-lavender-500/15 blur-3xl"
             aria-hidden
           />
           <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-14 md:pb-24 md:pt-20">
             <div className="mx-auto max-w-3xl text-center">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-sentinel-500/30 bg-sentinel-500/10 px-3 py-1 text-xs font-medium text-sentinel-200">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-sentinel-500/30 bg-sentinel-500/10 px-3 py-1 text-xs font-medium text-sentinel-700">
                 <Shield className="h-3.5 w-3.5" aria-hidden />
                 Payment guardrails for autonomous agents
               </div>
-              <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-6xl md:leading-[1.08]">
+              <h1 className="text-4xl font-extrabold tracking-tight text-fg md:text-6xl md:leading-[1.08]">
                 Smart security guardrails for{" "}
-                <span className="bg-gradient-to-r from-sentinel-300 via-plum-soft to-coral bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-link via-lavender-bright to-sentinel-300 bg-clip-text text-transparent">
                   AI agent payments
                 </span>
               </h1>
-              <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-400 md:text-lg">
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-fg-muted md:text-lg">
                 Sentinel-AP sits between autonomous AI buyer agents and Razorpay — hard-blocking
                 policy violations, soft-failing when bank rails degrade, and clearing safely when
                 health recovers.
@@ -130,7 +134,7 @@ export default function HomePage() {
 
             {/* Trust strip */}
             <div className="mx-auto mt-14 max-w-5xl">
-              <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-fg-subtle">
                 Built for production
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2">
@@ -163,22 +167,22 @@ export default function HomePage() {
             {STEPS.map((s, i) => (
               <div key={s.label} className="panel relative !p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sentinel-600/15 text-sentinel-300 ring-1 ring-sentinel-500/25">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sentinel-50 text-sentinel-700 ring-1 ring-sentinel-500/25">
                     <s.icon className="h-4 w-4" aria-hidden />
                   </span>
-                  <span className="font-mono text-[11px] text-slate-500">0{i + 1}</span>
+                  <span className="font-mono text-[11px] text-fg-subtle">0{i + 1}</span>
                 </div>
-                <h3 className="text-sm font-semibold text-white">{s.label}</h3>
-                <p className="mt-1 text-xs text-slate-400">{s.detail}</p>
+                <h3 className="text-sm font-semibold text-fg">{s.label}</h3>
+                <p className="mt-1 text-xs text-fg-muted">{s.detail}</p>
               </div>
             ))}
           </div>
 
           <div className="panel mt-4 overflow-hidden !p-0">
-            <div className="border-b border-white/[0.06] px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div className="border-b border-line px-5 py-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
               Decision path
             </div>
-            <pre className="overflow-x-auto bg-black/30 p-5 font-mono text-[11px] leading-relaxed text-sentinel-200/90 md:text-xs">
+            <pre className="overflow-x-auto bg-surface p-5 font-mono text-[11px] leading-relaxed text-sentinel-700/90 md:text-xs">
 {`AI Buyer Agent
       │  POST /api/v1/agent/intents  (X-API-Key)
       ▼
@@ -202,7 +206,7 @@ export default function HomePage() {
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Dual-gate control plane</h2>
-              <p className="mt-1 text-slate-400">
+              <p className="mt-1 text-fg-muted">
                 Policy hard-stops first. Rail health decides queue vs clear.
               </p>
             </div>
@@ -215,7 +219,7 @@ export default function HomePage() {
             {GATES.map((c) => (
               <div
                 key={c.gate}
-                className={`glass bg-gradient-to-b ${c.accent} p-6 transition hover:border-white/15`}
+                className={`glass bg-gradient-to-b ${c.accent} p-6 transition hover:border-line`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div
@@ -228,11 +232,11 @@ export default function HomePage() {
                     <SectionCoach guideId={c.coach} />
                   </div>
                 </div>
-                <div className="mt-4 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                <div className="mt-4 text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
                   {c.gate}
                 </div>
-                <h3 className="mt-1 text-lg font-bold text-white">{c.title}</h3>
-                <ul className="mt-4 space-y-2.5 text-sm text-slate-300">
+                <h3 className="mt-1 text-lg font-bold text-fg">{c.title}</h3>
+                <ul className="mt-4 space-y-2.5 text-sm text-fg-muted">
                   {c.points.map((p) => (
                     <li key={p} className="flex gap-2.5">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sentinel-400" aria-hidden />
@@ -247,13 +251,13 @@ export default function HomePage() {
 
         {/* CTA */}
         <section id="cta" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-20 pt-4">
-          <div className="relative overflow-hidden rounded-3xl border border-sentinel-500/25 bg-gradient-to-br from-sentinel-950/90 via-ink-900 to-ink p-8 md:p-12">
+          <div className="relative overflow-hidden rounded-3xl border border-sentinel-500/25 bg-gradient-to-br from-link/5 via-white to-sentinel-50 p-8 md:p-12">
             <div
               className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-sentinel-500/20 blur-3xl"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute -bottom-20 left-10 h-40 w-40 rounded-full bg-plum/10 blur-3xl"
+              className="pointer-events-none absolute -bottom-20 left-10 h-40 w-40 rounded-full bg-lavender-500/10 blur-3xl"
               aria-hidden
             />
             <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
@@ -264,7 +268,7 @@ export default function HomePage() {
                 <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
                   Connect an agent and go live
                 </h2>
-                <p className="mt-2 max-w-xl text-slate-400">
+                <p className="mt-2 max-w-xl text-fg-muted">
                   Sign in to issue API keys, set policies, and monitor rail health. Agents call a
                   single intent endpoint with their key.
                 </p>
@@ -280,7 +284,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <p className="mt-10 text-center text-sm text-slate-500">
+          <p className="mt-10 text-center text-sm text-fg-subtle">
             Sentinel-AP · FastAPI · Next.js · Postgres · Redis
           </p>
         </section>

@@ -97,12 +97,12 @@ function PoliciesInner({ token: t }: { token: string }) {
           <div className="panel mt-6 space-y-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sentinel-600/15 text-sentinel-300 ring-1 ring-sentinel-500/25">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sentinel-50 text-sentinel-700 ring-1 ring-sentinel-500/25">
                   <ShieldCheck className="h-5 w-5" aria-hidden />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">{active.name}</h2>
-                  <p className="mt-0.5 text-sm text-slate-400">{active.description}</p>
+                  <h2 className="text-lg font-semibold text-fg">{active.name}</h2>
+                  <p className="mt-0.5 text-sm text-fg-muted">{active.description}</p>
                 </div>
               </div>
               <StatusBadge status={active.is_active ? "ACTIVE" : "INACTIVE"} />
@@ -118,7 +118,7 @@ function PoliciesInner({ token: t }: { token: string }) {
                   key={`max-${active.max_amount_paise}`}
                   onBlur={(e) => save({ max_amount_paise: Number(e.target.value) })}
                 />
-                <span className="text-xs text-slate-500">= {formatINR(active.max_amount_paise)}</span>
+                <span className="text-xs text-fg-subtle">= {formatINR(active.max_amount_paise)}</span>
               </label>
 
               <label className="block space-y-1.5">
@@ -130,7 +130,7 @@ function PoliciesInner({ token: t }: { token: string }) {
                   key={`daily-${active.daily_budget_paise}`}
                   onBlur={(e) => save({ daily_budget_paise: Number(e.target.value) })}
                 />
-                <span className="text-xs text-slate-500">= {formatINR(active.daily_budget_paise)}</span>
+                <span className="text-xs text-fg-subtle">= {formatINR(active.daily_budget_paise)}</span>
               </label>
             </div>
 
@@ -168,7 +168,7 @@ function PoliciesInner({ token: t }: { token: string }) {
               />
             </label>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-fg-subtle">
               Changes save on blur. {saving ? "Saving…" : "Ready."}
             </p>
           </div>

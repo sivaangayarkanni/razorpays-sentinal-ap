@@ -14,8 +14,8 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">{title}</h1>
-        {description && <div className="mt-1 text-sm text-slate-400 md:text-[15px]">{description}</div>}
+        <h1 className="text-2xl font-bold tracking-tight text-fg md:text-3xl">{title}</h1>
+        {description && <div className="mt-1 text-sm text-fg-muted md:text-[15px]">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -25,7 +25,7 @@ export function PageHeader({
 export function StatCard({
   label,
   value,
-  tone = "text-white",
+  tone = "text-fg",
   hint,
   loading,
 }: {
@@ -44,10 +44,10 @@ export function StatCard({
     );
   }
   return (
-    <div className="panel !p-4 transition hover:border-white/15">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</div>
+    <div className="panel !p-4 transition hover:border-line">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">{label}</div>
       <div className={clsx("mt-1.5 text-2xl font-bold tabular-nums tracking-tight", tone)}>{value}</div>
-      {hint && <div className="mt-1 text-[11px] text-slate-500">{hint}</div>}
+      {hint && <div className="mt-1 text-[11px] text-fg-subtle">{hint}</div>}
     </div>
   );
 }
@@ -64,12 +64,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-surface px-6 py-14 text-center">
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface text-fg-muted">
         <Icon className="h-5 w-5" aria-hidden />
       </div>
-      <h3 className="text-sm font-semibold text-slate-200">{title}</h3>
-      {description && <p className="mt-1 max-w-sm text-sm text-slate-500">{description}</p>}
+      <h3 className="text-sm font-semibold text-fg">{title}</h3>
+      {description && <p className="mt-1 max-w-sm text-sm text-fg-subtle">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -79,7 +79,7 @@ export function ErrorBanner({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="mt-4 flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+      className="mt-4 flex items-start gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-600"
     >
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       <span>{message}</span>
@@ -91,7 +91,7 @@ export function SuccessBanner({ message }: { message: string }) {
   return (
     <div
       role="status"
-      className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+      className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700"
     >
       {message}
     </div>
@@ -102,7 +102,7 @@ export function InfoBanner({ message }: { message: string }) {
   return (
     <div
       role="status"
-      className="mt-4 rounded-xl border border-sentinel-500/25 bg-sentinel-500/10 px-4 py-3 text-sm text-sentinel-200"
+      className="mt-4 rounded-xl border border-sentinel-500/25 bg-sentinel-500/10 px-4 py-3 text-sm text-sentinel-700"
     >
       {message}
     </div>

@@ -25,12 +25,12 @@ export function StatusBadge({ status, className }: { status: string; className?:
         className={clsx(
           "h-1.5 w-1.5 rounded-full",
           status === "ALLOW" || status === "ACTIVE" || status === "HEALTHY"
-            ? "bg-amber-400"
+            ? "bg-sentinel-500"
             : status === "HARD_BLOCK" || status === "FAILED" || status === "CANCELLED" || status === "INACTIVE"
-              ? "bg-rose-400"
+              ? "bg-rose-500"
               : status === "CLEARED" || status === "COMPLETED"
-                ? "bg-plum-400"
-                : "bg-coral-400 animate-pulse-soft"
+                ? "bg-link"
+                : "bg-amber-500 animate-pulse-soft"
         )}
         aria-hidden
       />

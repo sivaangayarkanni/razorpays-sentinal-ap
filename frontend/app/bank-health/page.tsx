@@ -64,8 +64,8 @@ function BankHealthInner({ token }: { token: string }) {
                 className={clsx(
                   "relative flex h-40 w-40 items-center justify-center rounded-full border-[6px] text-4xl font-bold tabular-nums",
                   health.is_degraded
-                    ? "border-coral-400/80 text-coral-300 shadow-[0_0_40px_rgba(255,107,74,0.18)]"
-                    : "border-amber-400/80 text-amber-300 shadow-[0_0_40px_rgba(245,165,36,0.18)]"
+                    ? "border-amber-500/80 text-amber-700 shadow-[0_0_40px_rgba(154,103,0,0.12)]"
+                    : "border-sentinel-500/80 text-sentinel-700 shadow-[0_0_40px_rgba(31,136,61,0.12)]"
                 )}
                 role="img"
                 aria-label={`Success rate ${pct} percent`}
@@ -79,16 +79,16 @@ function BankHealthInner({ token }: { token: string }) {
                   {health.latency_ms}ms
                 </span>
               </div>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-fg-muted">
                 Threshold {(health.threshold * 100).toFixed(0)}% · provider{" "}
-                <span className="font-mono text-slate-300">{health.provider}</span>
+                <span className="font-mono text-fg-muted">{health.provider}</span>
               </p>
             </div>
           </div>
         )}
 
         <div className="panel mt-6">
-          <h2 className="mb-3 font-semibold text-white">Recent snapshots</h2>
+          <h2 className="mb-3 font-semibold text-fg">Recent snapshots</h2>
           {history.length === 0 ? (
             <EmptyState title="No snapshots yet" description="Health checks are recorded as the rail is probed." />
           ) : (
@@ -107,7 +107,7 @@ function BankHealthInner({ token }: { token: string }) {
                       <td
                         className={clsx(
                           "font-mono tabular-nums",
-                          h.is_degraded ? "text-coral-300" : "text-amber-300"
+                          h.is_degraded ? "text-amber-600" : "text-sentinel-600"
                         )}
                       >
                         {(h.success_rate * 100).toFixed(1)}%
@@ -115,7 +115,7 @@ function BankHealthInner({ token }: { token: string }) {
                       <td>
                         <StatusBadge status={h.is_degraded ? "DEGRADED" : "HEALTHY"} />
                       </td>
-                      <td className="text-slate-400">{new Date(h.created_at).toLocaleString()}</td>
+                      <td className="text-fg-muted">{new Date(h.created_at).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

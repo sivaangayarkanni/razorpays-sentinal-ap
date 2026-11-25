@@ -24,7 +24,7 @@ const SLIDES = [
     subtitle: "AI agents + hallucination + stuck payouts",
     icon: Ban,
     accent: "from-rose-500/20 to-transparent border-rose-500/25",
-    iconCls: "text-rose-300 bg-rose-500/10 ring-rose-500/30",
+    iconCls: "text-rose-600 bg-rose-50 ring-rose-500/30",
     bullets: [
       "Buyer agents invent SKUs or overspend against policy",
       "Prompt-only guardrails are non-deterministic",
@@ -38,7 +38,7 @@ const SLIDES = [
     subtitle: "Sentinel-AP dual-gate control plane",
     icon: Shield,
     accent: "from-sentinel-500/20 to-transparent border-sentinel-500/25",
-    iconCls: "text-sentinel-300 bg-sentinel-500/10 ring-sentinel-500/30",
+    iconCls: "text-sentinel-700 bg-sentinel-50 ring-sentinel-500/30",
     bullets: [
       "Middleware between AI agents and Razorpay",
       "Gate 1 hard-blocks policy violations",
@@ -51,8 +51,8 @@ const SLIDES = [
     title: "How it works",
     subtitle: "Intent → Gates → Rail",
     icon: Layers,
-    accent: "from-coral-500/20 to-transparent border-coral-500/25",
-    iconCls: "text-coral-300 bg-coral-500/10 ring-coral-500/30",
+    accent: "from-link-500/15 to-transparent border-link-500/25",
+    iconCls: "text-amber-700 bg-link-50 ring-link-500/30",
     bullets: [
       "POST /api/v1/agent/intents with X-API-Key",
       "Idempotency-Key + X-Request-Id for safe retries",
@@ -66,7 +66,7 @@ const SLIDES = [
     subtitle: "Deterministic policy hard block",
     icon: Ban,
     accent: "from-rose-500/20 to-transparent border-rose-500/25",
-    iconCls: "text-rose-300 bg-rose-500/10 ring-rose-500/30",
+    iconCls: "text-rose-600 bg-rose-50 ring-rose-500/30",
     bullets: [
       "Per-txn + daily budget caps (paise)",
       "SKU whitelist / blacklist + currency allow-list",
@@ -80,7 +80,7 @@ const SLIDES = [
     subtitle: "Bank health soft-fail queue",
     icon: Gauge,
     accent: "from-amber-500/20 to-transparent border-amber-500/25",
-    iconCls: "text-amber-300 bg-amber-500/10 ring-amber-500/30",
+    iconCls: "text-amber-700 bg-amber-50 ring-amber-500/30",
     bullets: [
       "Pre-flight success-rate vs threshold (default 95%)",
       "Degraded → QUEUED (no Razorpay call)",
@@ -93,8 +93,8 @@ const SLIDES = [
     title: "Razorpay",
     subtitle: "Test Orders + Checkout + verify",
     icon: CreditCard,
-    accent: "from-amber-500/20 to-transparent border-amber-500/25",
-    iconCls: "text-amber-300 bg-amber-500/10 ring-amber-500/30",
+    accent: "from-sentinel-500/20 to-transparent border-sentinel-500/25",
+    iconCls: "text-sentinel-700 bg-sentinel-50 ring-sentinel-500/30",
     bullets: [
       "Live rzp_test_ Orders (amounts in paise)",
       "Checkout.js → POST /payments/verify (HMAC)",
@@ -107,8 +107,8 @@ const SLIDES = [
     title: "Why this wins",
     subtitle: "Deterministic · reliable · auditable",
     icon: Zap,
-    accent: "from-plum-500/20 to-transparent border-plum-500/25",
-    iconCls: "text-plum-300 bg-plum-500/10 ring-plum-500/30",
+    accent: "from-lavender-500/15 to-transparent border-lavender-500/25",
+    iconCls: "text-lavender-700 bg-lavender-50 ring-lavender-500/30",
     bullets: [
       "Moat: policy + rail health, not another Checkout wrapper",
       "Full decision/audit trail for compliance demos",
@@ -121,8 +121,8 @@ const SLIDES = [
     title: "Ask / Demo",
     subtitle: "Playground + internship-ready stack",
     icon: Target,
-    accent: "from-plum-500/20 to-transparent border-plum-500/25",
-    iconCls: "text-plum-300 bg-plum-500/10 ring-plum-500/30",
+    accent: "from-lavender-500/15 to-transparent border-lavender-500/25",
+    iconCls: "text-lavender-700 bg-lavender-50 ring-lavender-500/30",
     bullets: [
       "Open Playground — ALLOW → test card 4111… → verify",
       "Hard-block + soft-fail scenarios in one click",
@@ -189,7 +189,7 @@ export function PitchDeck() {
   }, [active, scrollTo]);
 
   return (
-    <section id="pitch" className="scroll-mt-20 border-y border-white/[0.06] bg-black/20 py-14 md:py-20">
+    <section id="pitch" className="scroll-mt-20 border-y border-line bg-surface py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -200,7 +200,7 @@ export function PitchDeck() {
             <h2 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">
               Eight slides judges can skim
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-fg-muted">
               Snap-scroll · arrow keys when in view · mobile-friendly
             </p>
           </div>
@@ -213,7 +213,7 @@ export function PitchDeck() {
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <span className="font-mono text-xs text-slate-500">
+            <span className="font-mono text-xs text-fg-subtle">
               {String(active + 1).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}
             </span>
             <button
@@ -247,11 +247,11 @@ export function PitchDeck() {
                 <div className={clsx("flex h-10 w-10 items-center justify-center rounded-xl ring-1", s.iconCls)}>
                   <s.icon className="h-5 w-5" aria-hidden />
                 </div>
-                <span className="font-mono text-2xl font-bold tabular-nums text-white/15">{s.n}</span>
+                <span className="font-mono text-2xl font-bold tabular-nums text-ink-200">{s.n}</span>
               </div>
-              <h3 className="mt-4 text-lg font-bold text-white">{s.title}</h3>
-              <p className="mt-1 text-sm text-slate-400">{s.subtitle}</p>
-              <ul className="mt-4 space-y-2.5 text-sm text-slate-300">
+              <h3 className="mt-4 text-lg font-bold text-fg">{s.title}</h3>
+              <p className="mt-1 text-sm text-fg-muted">{s.subtitle}</p>
+              <ul className="mt-4 space-y-2.5 text-sm text-fg-muted">
                 {s.bullets.map((b) => (
                   <li key={b} className="flex gap-2.5">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sentinel-400" aria-hidden />
@@ -277,7 +277,7 @@ export function PitchDeck() {
               aria-label={`Go to slide ${i + 1}`}
               className={clsx(
                 "h-1.5 rounded-full transition-all",
-                i === active ? "w-6 bg-sentinel-400" : "w-1.5 bg-white/20 hover:bg-white/40"
+                i === active ? "w-6 bg-sentinel-400" : "w-1.5 bg-ink-200 hover:bg-ink-300"
               )}
               onClick={() => scrollTo(i)}
             />
