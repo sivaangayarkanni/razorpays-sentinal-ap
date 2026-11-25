@@ -52,9 +52,9 @@ const GUIDES: Guide[] = [
     accent: "text-emerald-200",
     ring: "ring-emerald-400/40",
     bg: "from-emerald-500/25 to-emerald-900/20",
-    tip: "When both gates pass, I mint Razorpay Orders in paise. Try the playground!",
+    tip: "When both gates pass, I mint Razorpay Orders in paise.",
     section: "cta",
-    ctaHref: "/playground",
+    ctaHref: "/integrate",
     ctaLabel: "Open Playground",
   },
   {
@@ -67,7 +67,7 @@ const GUIDES: Guide[] = [
     bg: "from-sentinel-500/25 to-sentinel-900/20",
     tip: "Every decision leaves a trail. Scroll the pitch deck for the story in 90 seconds.",
     section: "pitch",
-    ctaHref: "/#pitch",
+    ctaHref: "/integrate",
     ctaLabel: "Jump to Pitch",
   },
 ];

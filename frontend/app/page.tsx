@@ -12,7 +12,6 @@ import {
   Zap,
 } from "lucide-react";
 import { Nav } from "@/components/Nav";
-import { PitchDeck } from "@/components/PitchDeck";
 import { SystemStatus } from "@/components/SystemStatus";
 import { GuideAgents, SectionCoach } from "@/components/GuideAgents";
 
@@ -64,8 +63,8 @@ const GATES = [
     coach: "runner" as const,
     points: [
       "Amounts in paise (INR)",
-      "Mock or live test keys",
-      "Full audit trail + OpenAPI",
+      "Live or test Razorpay keys",
+      "Full audit trail",
     ],
   },
 ];
@@ -93,18 +92,18 @@ export default function HomePage() {
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -right-16 top-40 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl"
+            className="pointer-events-none absolute -right-16 top-40 h-48 w-48 rounded-full bg-violet-DEFAULT/10 blur-3xl"
             aria-hidden
           />
           <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-14 md:pb-24 md:pt-20">
             <div className="mx-auto max-w-3xl text-center">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-sentinel-500/30 bg-sentinel-500/10 px-3 py-1 text-xs font-medium text-sentinel-200">
                 <Shield className="h-3.5 w-3.5" aria-hidden />
-                Razorpay Buildathon · Autonomous AI × Payments
+                Payment guardrails for autonomous agents
               </div>
               <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-6xl md:leading-[1.08]">
                 Smart security guardrails for{" "}
-                <span className="bg-gradient-to-r from-sentinel-300 via-teal-200 to-emerald-200 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-sentinel-300 via-violet-soft to-indigo-200 bg-clip-text text-transparent">
                   AI agent payments
                 </span>
               </h1>
@@ -114,15 +113,12 @@ export default function HomePage() {
                 health recovers.
               </p>
               <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-                <Link href="/playground" className="btn-primary !px-5 !py-3">
-                  Open Demo Playground
+                <Link href="/dashboard" className="btn-primary !px-5 !py-3">
+                  Sign in
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
-                <Link href="/#pitch" className="btn-secondary !px-5 !py-3">
-                  View Pitch Deck
-                </Link>
-                <Link href="/dashboard" className="btn-secondary !px-5 !py-3">
-                  Admin Dashboard
+                <Link href="/integrate" className="btn-secondary !px-5 !py-3">
+                  Integrate
                 </Link>
               </div>
               <div className="mt-5 flex justify-center">
@@ -135,7 +131,7 @@ export default function HomePage() {
             {/* Trust strip */}
             <div className="mx-auto mt-14 max-w-5xl">
               <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Built for production demos
+                Built for production
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {TRUST.map((t) => (
@@ -147,10 +143,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
-        <div>
-          <PitchDeck />
-        </div>
 
         {/* Architecture */}
         <section id="architecture" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-8 pt-10">
@@ -261,7 +253,7 @@ export default function HomePage() {
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute -bottom-20 left-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl"
+              className="pointer-events-none absolute -bottom-20 left-10 h-40 w-40 rounded-full bg-violet-DEFAULT/10 blur-3xl"
               aria-hidden
             />
             <div className="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
@@ -270,26 +262,26 @@ export default function HomePage() {
                   <SectionCoach guideId="runner" />
                 </div>
                 <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                  Run the full Gate 1 → Gate 2 demo
+                  Connect an agent and go live
                 </h2>
                 <p className="mt-2 max-w-xl text-slate-400">
-                  One-click scenarios for allow, hard-block, and soft-fail queue — then restore bank
-                  health and clear the rail.
+                  Sign in to issue API keys, set policies, and monitor rail health. Agents call a
+                  single intent endpoint with their key.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href="/playground" className="btn-primary !px-5 !py-3">
-                  Launch Playground
+                <Link href="/dashboard" className="btn-primary !px-5 !py-3">
+                  Open console
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
-                <Link href="/bank-health" className="btn-secondary !px-5 !py-3">
-                  Simulate rail health
+                <Link href="/integrate" className="btn-secondary !px-5 !py-3">
+                  Integration guide
                 </Link>
               </div>
             </div>
           </div>
           <p className="mt-10 text-center text-sm text-slate-500">
-            Built for Razorpay Buildathon · FastAPI · Next.js · Postgres · Redis · ARQ
+            Sentinel-AP · FastAPI · Next.js · Postgres · Redis
           </p>
         </section>
       </main>

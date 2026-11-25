@@ -64,16 +64,14 @@ def api_mode_from_key(key_id: str) -> str:
 
 
 def is_mock_mode() -> bool:
-    """Mock when keys are missing, or when RAZORPAY_MOCK is explicitly true.
-
-    If real key id + secret are present, default is live/test mode
-    (RAZORPAY_MOCK defaults to false).
-    """
+    """Mock only when payment keys are missing, or when ENABLE_DEMO is on and mock is requested."""
     settings = get_settings()
     keys_configured = bool(settings.razorpay_key_id and settings.razorpay_key_secret)
     if not keys_configured:
         return True
-    return bool(settings.razorpay_mock)
+    if settings.enable_demo:
+        return bool(settings.razorpay_mock)
+    return False
 
 
 def _auth() -> tuple[str, str]:

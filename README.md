@@ -31,13 +31,13 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 | Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Internship notes | [`docs/INTERNSHIP.md`](docs/INTERNSHIP.md) |
 
-**Demo credentials**
-- Admin email defaults to `admin@sentinel-ap.local`. Set `ADMIN_PASSWORD` (and preferably `JWT_SECRET`) on the API host — do not publish the password in this README.
-- Agent API key (seeded demo agent): `sap_demo000000000000000000000000000001`
+**Admin access**
+- Sign in at `/dashboard` with `ADMIN_EMAIL`. If `ADMIN_PASSWORD` is unset or is the weak default, the first sign-in must set a new 12+ character password.
+- Issue agent API keys from the console (`/agents`). Keys are shown once.
 
-### Judge demo script (with real Razorpay test Checkout)
+### Production console
 
-1. Open **https://sentinel-ap.vercel.app/playground** — look for the **Test mode · Razorpay** badge.
+1. Open **https://sentinel-ap.vercel.app/dashboard** — look for the **Test keys** or **Live** badge.
 2. Click **✓ Successful clearance** → Gate 1 + Gate 2 pass → real Razorpay `order_…` id (not `order_mock_`).
 3. Razorpay Checkout opens automatically. Pay with test card:
    - Card: `4111 1111 1111 1111`

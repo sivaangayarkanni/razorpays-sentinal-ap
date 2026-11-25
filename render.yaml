@@ -40,6 +40,10 @@ services:
         sync: false
       - key: ALLOW_SQLITE_FALLBACK
         value: "true"
+      - key: ENABLE_DEMO
+        value: "false"
+      - key: ENABLE_DOCS
+        value: "false"
       - key: BANK_HEALTH_THRESHOLD
         value: "0.95"
       - key: BANK_HEALTH_MOCK_SUCCESS_RATE

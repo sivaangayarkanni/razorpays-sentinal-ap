@@ -4,12 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 import { Nav } from "@/components/Nav";
-import { LoginForm, useAdminToken } from "@/components/AuthGate";
+import { AdminGuard } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   EmptyState,
   ErrorBanner,
-  LoadingScreen,
   PageHeader,
   StatCard,
 } from "@/components/ui";
@@ -18,15 +17,16 @@ import { api, formatINR, IntentResult } from "@/lib/api";
 const FILTERS = ["", "ALLOW", "HARD_BLOCK", "QUEUED", "CLEARED", "FAILED"] as const;
 
 export default function DashboardPage() {
-  const { token, ready } = useAdminToken();
-  const [localToken, setLocalToken] = useState<string | null>(null);
+  return <AdminGuard>{({ token }) => <DashboardInner token={token} />}</AdminGuard>;
+}
+
+function DashboardInner({ token: t }: { token: string }) {
   const [stats, setStats] = useState<any>(null);
   const [intents, setIntents] = useState<IntentResult[]>([]);
   const [filter, setFilter] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const t = localToken || token;
 
   const load = useCallback(async (tok: string, status?: string) => {
     setLoading(true);
@@ -46,27 +46,6 @@ export default function DashboardPage() {
     if (t) load(t, filter);
   }, [t, filter, load]);
 
-  if (!ready) {
-    return (
-      <>
-        <Nav />
-        <LoadingScreen />
-      </>
-    );
-  }
-  if (!t) {
-    return (
-      <>
-        <Nav />
-        <LoginForm
-          onLogin={(tok) => {
-            setLocalToken(tok);
-            load(tok);
-          }}
-        />
-      </>
-    );
-  }
 
   const cards = stats
     ? [
@@ -176,10 +155,10 @@ export default function DashboardPage() {
           {!loading && intents.length === 0 && (
             <EmptyState
               title="No decisions yet"
-              description="Submit an intent from the Demo Playground to populate the feed."
+              description="Agent intents appear here once they hit POST /api/v1/agent/intents."
               action={
-                <Link href="/playground" className="btn-primary text-xs">
-                  Open Playground
+                <Link href="/integrate" className="btn-primary text-xs">
+                  Integration guide
                 </Link>
               }
             />

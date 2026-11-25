@@ -9,10 +9,11 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import AdminDep, DbSession
+from app.api.deps import AdminDep, AdminDepAllowChange, DbSession
 from app.core.config import get_settings
-from app.core.security import create_access_token, generate_api_key, hash_api_key
+from app.core.security import create_access_token, generate_api_key, hash_api_key, hash_password, verify_password
 from app.models.entities import (
+    AdminAccount,
     Agent,
     AuditEvent,
     BankHealthSnapshot,
@@ -27,6 +28,7 @@ from app.schemas.api import (
     AdminLoginRequest,
     AgentCreate,
     AgentOut,
+    PasswordChangeRequest,
     AuditEventOut,
     BankHealthConfigUpdate,
     BankHealthOut,
@@ -50,12 +52,48 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(body: AdminLoginRequest) -> TokenResponse:
-    settings = get_settings()
-    if body.email != settings.admin_email or body.password != settings.admin_password:
+async def login(body: AdminLoginRequest, db: DbSession) -> TokenResponse:
+    from app.seed import is_weak_admin_password, seed_demo_data
+
+    email = (body.email or "").strip().lower()
+    account = (await db.execute(select(AdminAccount).where(AdminAccount.email == email))).scalar_one_or_none()
+    if account is None:
+        # In case startup seed has not run yet
+        await seed_demo_data()
+        account = (await db.execute(select(AdminAccount).where(AdminAccount.email == email))).scalar_one_or_none()
+    if account is None or not verify_password(body.password, account.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token(body.email, extra={"role": "admin"})
-    return TokenResponse(access_token=token)
+    must_change = bool(account.must_change_password) or is_weak_admin_password(body.password)
+    token = create_access_token(
+        account.email,
+        extra={"role": "admin", "must_change": must_change, "pwd_ver": account.password_version},
+    )
+    return TokenResponse(access_token=token, must_change_password=must_change)
+
+
+@router.post("/change-password", response_model=TokenResponse)
+async def change_password(body: PasswordChangeRequest, admin: AdminDepAllowChange, db: DbSession) -> TokenResponse:
+    from app.seed import validate_new_admin_password
+
+    email = (admin.get("sub") or "").lower()
+    account = (await db.execute(select(AdminAccount).where(AdminAccount.email == email))).scalar_one_or_none()
+    if account is None or not verify_password(body.current_password, account.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    err = validate_new_admin_password(body.new_password)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+    if body.new_password == body.current_password:
+        raise HTTPException(status_code=400, detail="New password must be different from the current password")
+    account.password_hash = hash_password(body.new_password)
+    account.must_change_password = False
+    account.password_version = int(account.password_version or 1) + 1
+    await db.flush()
+    await write_audit(db, actor=f"admin:{account.email}", action="admin.password_changed", payload={})
+    token = create_access_token(
+        account.email,
+        extra={"role": "admin", "must_change": False, "pwd_ver": account.password_version},
+    )
+    return TokenResponse(access_token=token, must_change_password=False)
 
 
 @router.get("/stats", response_model=DashboardStats)
@@ -332,6 +370,8 @@ async def bank_health_history(_: AdminDep, db: DbSession, limit: int = 30) -> li
 @router.post("/bank-health/config", response_model=BankHealthOut)
 async def configure_bank_health(body: BankHealthConfigUpdate, admin: AdminDep, db: DbSession) -> BankHealthOut:
     settings = get_settings()
+    if not settings.enable_demo:
+        raise HTTPException(status_code=403, detail="Demo rail overrides are disabled")
     if body.mock_success_rate is not None:
         bank_health_service.set_mock_success_rate(body.mock_success_rate)
         settings.bank_health_mock_success_rate = body.mock_success_rate
@@ -407,4 +447,26 @@ async def create_agent(body: AgentCreate, admin: AdminDep, db: DbSession) -> Age
         is_active=agent.is_active,
         created_at=agent.created_at,
         api_key=raw_key,
+    )
+
+
+@router.post("/agents/{agent_id}/revoke", response_model=AgentOut)
+async def revoke_agent(agent_id: UUID, admin: AdminDep, db: DbSession) -> AgentOut:
+    agent = (await db.execute(select(Agent).where(Agent.id == agent_id))).scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent.is_active = False
+    await db.flush()
+    await write_audit(
+        db,
+        actor=f"admin:{admin.get('sub')}",
+        action="agent.revoked",
+        payload={"agent_id": str(agent.id), "name": agent.name},
+    )
+    return AgentOut(
+        id=agent.id,
+        name=agent.name,
+        api_key_prefix=agent.api_key_prefix,
+        is_active=agent.is_active,
+        created_at=agent.created_at,
     )

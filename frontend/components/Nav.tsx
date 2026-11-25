@@ -5,23 +5,36 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Menu, X, Shield } from "lucide-react";
+import { ADMIN_TOKEN_KEY } from "@/lib/api";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/#pitch", label: "Pitch" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/policies", label: "Policies" },
+  { href: "/agents", label: "API keys" },
   { href: "/bank-health", label: "Bank Health" },
   { href: "/queue", label: "Queue" },
-  { href: "/playground", label: "Playground" },
+  { href: "/integrate", label: "Integrate" },
 ];
 
 export function Nav() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     setOpen(false);
+  }, [path]);
+
+  useEffect(() => {
+    const sync = () => setSignedIn(Boolean(localStorage.getItem(ADMIN_TOKEN_KEY)));
+    sync();
+    window.addEventListener("sentinel:unauthorized", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("sentinel:unauthorized", sync);
+      window.removeEventListener("storage", sync);
+    };
   }, [path]);
 
   useEffect(() => {
@@ -37,11 +50,14 @@ export function Nav() {
     };
   }, [open]);
 
+  const ctaHref = signedIn ? "/dashboard" : "/dashboard";
+  const ctaLabel = signedIn ? "Console" : "Sign in";
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-ink/85 backdrop-blur-xl nav-glow">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="group flex items-center gap-2.5 font-bold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sentinel-400 to-sentinel-700 text-ink-950 shadow-glow ring-1 ring-white/10 transition group-hover:brightness-110">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sentinel-400 to-violet-deep text-white shadow-glow ring-1 ring-white/10 transition group-hover:brightness-110">
             <Shield className="h-4 w-4" aria-hidden />
           </span>
           <span className="text-[15px]">
@@ -52,11 +68,9 @@ export function Nav() {
         <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Primary">
           {links.map((l) => {
             const active =
-              l.href === "/#pitch"
-                ? false
-                : l.href === "/"
-                  ? path === "/"
-                  : path === l.href || path.startsWith(l.href + "/");
+              l.href === "/"
+                ? path === "/"
+                : path === l.href || path.startsWith(l.href + "/");
             return (
               <Link
                 key={l.href}
@@ -76,8 +90,8 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href="/playground" className="btn-primary hidden text-xs sm:inline-flex md:text-sm">
-            Try Demo
+          <Link href={ctaHref} className="btn-primary hidden text-xs sm:inline-flex md:text-sm">
+            {ctaLabel}
           </Link>
           <button
             type="button"
@@ -110,8 +124,8 @@ export function Nav() {
                 </Link>
               );
             })}
-            <Link href="/playground" className="btn-primary mt-2 w-full sm:hidden">
-              Try Demo
+            <Link href={ctaHref} className="btn-primary mt-2 w-full sm:hidden">
+              {ctaLabel}
             </Link>
           </nav>
         </div>

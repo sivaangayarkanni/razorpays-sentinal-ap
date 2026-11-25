@@ -4,27 +4,27 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, RotateCcw } from "lucide-react";
 import { Nav } from "@/components/Nav";
-import { LoginForm, useAdminToken } from "@/components/AuthGate";
+import { AdminGuard } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   EmptyState,
   ErrorBanner,
   InfoBanner,
-  LoadingScreen,
   PageHeader,
 } from "@/components/ui";
 import { api, formatINR } from "@/lib/api";
 
 export default function QueuePage() {
-  const { token, ready } = useAdminToken();
-  const [localToken, setLocalToken] = useState<string | null>(null);
+  return <AdminGuard>{({ token }) => <QueueInner token={token} />}</AdminGuard>;
+}
+
+function QueueInner({ token: t }: { token: string }) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState<string | null>(null);
 
-  const t = localToken || token;
 
   const load = async (tok: string) => {
     setLoading(true);
@@ -42,22 +42,6 @@ export default function QueuePage() {
     if (t) load(t);
   }, [t]);
 
-  if (!ready) {
-    return (
-      <>
-        <Nav />
-        <LoadingScreen />
-      </>
-    );
-  }
-  if (!t) {
-    return (
-      <>
-        <Nav />
-        <LoginForm onLogin={(tok) => setLocalToken(tok)} />
-      </>
-    );
-  }
 
   const retry = async (id: string) => {
     setRetrying(id);
@@ -107,13 +91,13 @@ export default function QueuePage() {
           {!loading && jobs.length === 0 && (
             <EmptyState
               title="Queue empty"
-              description="Degrade bank health, then submit a valid intent from the Playground."
+              description="Queued intents retry automatically when the payment rail recovers."
               action={
                 <div className="flex flex-wrap justify-center gap-2">
                   <Link href="/bank-health" className="btn-secondary text-xs">
                     Bank Health
                   </Link>
-                  <Link href="/playground" className="btn-primary text-xs">
+                  <Link href="/integrate" className="btn-primary text-xs">
                     Playground
                   </Link>
                 </div>

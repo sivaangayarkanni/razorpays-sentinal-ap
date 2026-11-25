@@ -206,3 +206,17 @@ class IdempotencyRecord(Base):
     key: Mapped[str] = mapped_column(String(255), nullable=False)
     intent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("intents.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AdminAccount(Base):
+    """Stored admin credentials (bcrypt). Env password is only used to bootstrap."""
+
+    __tablename__ = "admin_accounts"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=new_uuid)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    password_version: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

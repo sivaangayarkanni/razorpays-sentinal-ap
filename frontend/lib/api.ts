@@ -1,5 +1,23 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export const ADMIN_TOKEN_KEY = "sentinel_admin_token";
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+function clearStaleAdminToken() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ADMIN_TOKEN_KEY);
+  window.dispatchEvent(new Event("sentinel:unauthorized"));
+}
+
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function isRetryableNetworkError(err: unknown): boolean {
@@ -76,8 +94,14 @@ async function request<T>(
         const detail = (err as { detail?: unknown; message?: unknown }).detail
           ?? (err as { message?: unknown }).message
           ?? err;
-        const msg = typeof detail === "string" ? detail : JSON.stringify(detail);
-        throw new Error(msg);
+        let msg = typeof detail === "string" ? detail : JSON.stringify(detail);
+        if (detail && typeof detail === "object" && "message" in (detail as object)) {
+          msg = String((detail as { message?: unknown }).message || msg);
+        }
+        if (res.status === 401 && token) {
+          clearStaleAdminToken();
+        }
+        throw new ApiError(msg, res.status);
       }
       return res.json();
     } catch (e) {
@@ -134,10 +158,42 @@ export type PaymentVerifyResult = {
 
 export const api = {
   login: (email: string, password: string) =>
-    request<{ access_token: string }>("/api/v1/admin/login", {
+    request<{ access_token: string; must_change_password?: boolean; token_type?: string }>(
+      "/api/v1/admin/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      }
+    ),
+  changePassword: (token: string, current_password: string, new_password: string) =>
+    request<{ access_token: string; must_change_password?: boolean }>("/api/v1/admin/change-password", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      token,
+      body: JSON.stringify({ current_password, new_password }),
     }),
+  agents: (token: string) =>
+    request<Array<{ id: string; name: string; api_key_prefix: string; is_active: boolean; created_at: string }>>(
+      "/api/v1/admin/agents",
+      { token }
+    ),
+  createAgent: (token: string, name: string) =>
+    request<{
+      id: string;
+      name: string;
+      api_key_prefix: string;
+      is_active: boolean;
+      created_at: string;
+      api_key?: string;
+    }>("/api/v1/admin/agents", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ name }),
+    }),
+  revokeAgent: (token: string, id: string) =>
+    request<{ id: string; name: string; api_key_prefix: string; is_active: boolean; created_at: string }>(
+      `/api/v1/admin/agents/${id}/revoke`,
+      { method: "POST", token }
+    ),
   stats: (token: string) => request<Record<string, unknown>>("/api/v1/admin/stats", { token }),
   intents: (token: string, status?: string) =>
     request<IntentResult[]>(
@@ -239,3 +295,13 @@ export function loadRazorpayCheckout(): Promise<boolean> {
 }
 
 export { API_URL };
+
+export function paymentModeLabel(config: { mock?: boolean; api_mode?: string; razorpay_key_id?: string } | null): {
+  label: string;
+  kind: "live" | "test" | "missing";
+} {
+  const key = config?.razorpay_key_id || "";
+  if (config?.mock || !key) return { label: "No payment keys", kind: "missing" };
+  if (key.startsWith("rzp_live_") || config?.api_mode === "live") return { label: "Live", kind: "live" };
+  return { label: "Test keys", kind: "test" };
+}

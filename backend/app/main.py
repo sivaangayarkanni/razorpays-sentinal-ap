@@ -96,6 +96,8 @@ def _error_body(request: Request, *, status_code: int, detail: Any) -> dict[str,
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    docs_url = "/docs" if settings.enable_docs else None
+    redoc_url = "/redoc" if settings.enable_docs else None
     app = FastAPI(
         title="Sentinel-AP",
         description=(
@@ -110,8 +112,9 @@ def create_app() -> FastAPI:
         ),
         version=APP_VERSION,
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url=docs_url,
+        redoc_url=redoc_url,
+        openapi_url="/openapi.json" if settings.enable_docs else None,
         openapi_tags=[
             {"name": "Agent", "description": "AI buyer agent payment intents (X-API-Key + Idempotency-Key)"},
             {"name": "Admin", "description": "Dashboard, policies, queue, bank health, audit"},

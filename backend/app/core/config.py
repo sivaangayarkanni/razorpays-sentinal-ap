@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     debug: bool = True
     api_prefix: str = "/api/v1"
+    enable_demo: bool = False
+    enable_docs: bool = False
 
     # Database
     database_url: str = "postgresql+asyncpg://sentinel:sentinel@localhost:5432/sentinel_ap"

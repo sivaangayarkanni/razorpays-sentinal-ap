@@ -3,27 +3,27 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, ShieldCheck } from "lucide-react";
 import { Nav } from "@/components/Nav";
-import { LoginForm, useAdminToken } from "@/components/AuthGate";
+import { AdminGuard } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   EmptyState,
   ErrorBanner,
   InfoBanner,
-  LoadingScreen,
   PageHeader,
 } from "@/components/ui";
 import { api, formatINR } from "@/lib/api";
 
 export default function PoliciesPage() {
-  const { token, ready } = useAdminToken();
-  const [localToken, setLocalToken] = useState<string | null>(null);
+  return <AdminGuard>{({ token }) => <PoliciesInner token={token} />}</AdminGuard>;
+}
+
+function PoliciesInner({ token: t }: { token: string }) {
   const [policies, setPolicies] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const t = localToken || token;
 
   const load = async (tok: string) => {
     setLoading(true);
@@ -41,22 +41,6 @@ export default function PoliciesPage() {
     if (t) load(t);
   }, [t]);
 
-  if (!ready) {
-    return (
-      <>
-        <Nav />
-        <LoadingScreen />
-      </>
-    );
-  }
-  if (!t) {
-    return (
-      <>
-        <Nav />
-        <LoginForm onLogin={(tok) => setLocalToken(tok)} />
-      </>
-    );
-  }
 
   const active = policies.find((p) => p.is_active) || policies[0];
 

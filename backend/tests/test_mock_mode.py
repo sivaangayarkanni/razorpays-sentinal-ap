@@ -49,8 +49,22 @@ def test_explicit_mock_wins_even_with_keys():
         RAZORPAY_KEY_ID="rzp_test_examplekeyid",
         RAZORPAY_KEY_SECRET="test_secret_value",
         RAZORPAY_MOCK="true",
+        ENABLE_DEMO="true",
     )
     try:
         assert is_mock_mode() is True
+    finally:
+        _restore(prev)
+
+
+def test_production_ignores_razorpay_mock_flag_when_keys_present():
+    prev = _swap(
+        RAZORPAY_KEY_ID="rzp_test_examplekeyid",
+        RAZORPAY_KEY_SECRET="test_secret_value",
+        RAZORPAY_MOCK="true",
+        ENABLE_DEMO="false",
+    )
+    try:
+        assert is_mock_mode() is False
     finally:
         _restore(prev)
