@@ -285,7 +285,10 @@ export default function HomePage() {
             </div>
           </div>
           <p className="mt-10 text-center text-sm text-fg-subtle">
-            Sentinel-AP · FastAPI · Next.js · Postgres · Redis
+            Sentinel-AP · FastAPI · Next.js · Postgres · Redis ·{" "}
+            <Link href="/pitch" className="text-link hover:underline">
+              Pitch
+            </Link>
           </p>
         </section>
       </main>

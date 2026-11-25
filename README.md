@@ -26,7 +26,7 @@ AI Buyer Agent → Sentinel-AP (Gate 1 Policy → Gate 2 Bank Health) → Razorp
 | Deliverable | Path |
 |-------------|------|
 | One-page pitch (PDF) | [`docs/Sentinel-AP-Pitch-One-Pager.pdf`](docs/Sentinel-AP-Pitch-One-Pager.pdf) |
-| Pitch HTML source | [`docs/pitch-one-pager.html`](docs/pitch-one-pager.html) |
+| One-page pitch (web) | [https://sentinel-ap.vercel.app/pitch](https://sentinel-ap.vercel.app/pitch) (`/pitch`) |
 | Recorded-demo voiceover script | [`docs/DEMO_RECORDING_SCRIPT.md`](docs/DEMO_RECORDING_SCRIPT.md) |
 | Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Internship notes | [`docs/INTERNSHIP.md`](docs/INTERNSHIP.md) |
@@ -73,8 +73,8 @@ Public config (no secret): `GET /api/v1/public/config` → `{ razorpay_key_id, m
 - Bank health TTL cache + circuit breaker · `POST /admin/queue/drain` outbox pump
 - `GET /api/v1/public/architecture` + `GET /api/v1/admin/system`
 - Structured JSON logs (`request_id`, `intent_id`, `gate`, `outcome`)
-- Pitch deck on landing `#pitch` · docs in `docs/ARCHITECTURE.md` + `docs/INTERNSHIP.md`
-- **One-page pitch PDF:** [`docs/Sentinel-AP-Pitch-One-Pager.pdf`](docs/Sentinel-AP-Pitch-One-Pager.pdf) (HTML source: [`docs/pitch-one-pager.html`](docs/pitch-one-pager.html))
+- One-page pitch at `/pitch` (React) · docs in `docs/ARCHITECTURE.md` + `docs/INTERNSHIP.md`
+- **One-page pitch PDF:** [`docs/Sentinel-AP-Pitch-One-Pager.pdf`](docs/Sentinel-AP-Pitch-One-Pager.pdf)
 - **Demo recording script (~3–5 min):** [`docs/DEMO_RECORDING_SCRIPT.md`](docs/DEMO_RECORDING_SCRIPT.md)
 - Agent demo: `python examples/agent_buyer.py`
 

@@ -306,3 +306,22 @@ input[type="range"]::-moz-range-thumb {
   @apply h-4 w-4 rounded-full border-0;
   background-color: #1F883D;
 }
+
+
+@media print {
+  header,
+  .guide-dock,
+  .print-hide,
+  .nav-glow {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #1f2328 !important;
+  }
+  .pitch-sheet {
+    max-width: none;
+    box-shadow: none;
+  }
+}
