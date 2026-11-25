@@ -168,7 +168,7 @@ export function ChangePasswordForm({
     <div className="mx-auto max-w-md px-4 page-enter">
       <form onSubmit={submit} className="glass-strong mt-14 space-y-5 p-8">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-plum-500/20 text-plum-200 ring-1 ring-plum-400/30">
             <Lock className="h-5 w-5" aria-hidden />
           </div>
           <div>

@@ -64,7 +64,7 @@ export default function IntegratePage() {
           <h2 className="font-semibold text-white">3. Handle the decision</h2>
           <ul className="list-disc space-y-2 pl-5 text-sm text-slate-300">
             <li>
-              <span className="font-semibold text-emerald-300">ALLOW</span> — Gate 1 and Gate 2 passed. Use{" "}
+              <span className="font-semibold text-amber-300">ALLOW</span> — Gate 1 and Gate 2 passed. Use{" "}
               <code className="font-mono text-xs">razorpay_order_id</code> with Checkout or your payment flow.
             </li>
             <li>

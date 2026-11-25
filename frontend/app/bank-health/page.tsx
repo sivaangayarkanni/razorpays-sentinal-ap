@@ -64,8 +64,8 @@ function BankHealthInner({ token }: { token: string }) {
                 className={clsx(
                   "relative flex h-40 w-40 items-center justify-center rounded-full border-[6px] text-4xl font-bold tabular-nums",
                   health.is_degraded
-                    ? "border-amber-400/80 text-amber-300 shadow-[0_0_40px_rgba(251,191,36,0.15)]"
-                    : "border-emerald-400/80 text-emerald-300 shadow-[0_0_40px_rgba(52,211,153,0.15)]"
+                    ? "border-coral-400/80 text-coral-300 shadow-[0_0_40px_rgba(255,107,74,0.18)]"
+                    : "border-amber-400/80 text-amber-300 shadow-[0_0_40px_rgba(245,165,36,0.18)]"
                 )}
                 role="img"
                 aria-label={`Success rate ${pct} percent`}
@@ -107,7 +107,7 @@ function BankHealthInner({ token }: { token: string }) {
                       <td
                         className={clsx(
                           "font-mono tabular-nums",
-                          h.is_degraded ? "text-amber-300" : "text-emerald-300"
+                          h.is_degraded ? "text-coral-300" : "text-amber-300"
                         )}
                       >
                         {(h.success_rate * 100).toFixed(1)}%

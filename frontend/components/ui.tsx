@@ -91,7 +91,7 @@ export function SuccessBanner({ message }: { message: string }) {
   return (
     <div
       role="status"
-      className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+      className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
     >
       {message}
     </div>

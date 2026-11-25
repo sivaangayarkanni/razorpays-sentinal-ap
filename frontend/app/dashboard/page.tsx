@@ -50,14 +50,14 @@ function DashboardInner({ token: t }: { token: string }) {
   const cards = stats
     ? [
         { label: "Total", value: stats.total_intents, tone: "text-white" },
-        { label: "Allowed", value: stats.allowed, tone: "text-emerald-300" },
+        { label: "Allowed", value: stats.allowed, tone: "text-amber-300" },
         { label: "Hard Blocked", value: stats.hard_blocked, tone: "text-rose-300" },
-        { label: "Queued", value: stats.queued, tone: "text-amber-300" },
-        { label: "Cleared", value: stats.cleared, tone: "text-sky-300" },
+        { label: "Queued", value: stats.queued, tone: "text-coral-300" },
+        { label: "Cleared", value: stats.cleared, tone: "text-plum-300" },
         {
           label: "Bank Rail",
           value: `${((stats.bank_success_rate as number) * 100).toFixed(1)}%`,
-          tone: stats.bank_is_degraded ? "text-amber-300" : "text-emerald-300",
+          tone: stats.bank_is_degraded ? "text-coral-300" : "text-amber-300",
           hint: stats.bank_is_degraded ? "Degraded" : "Healthy",
         },
       ]
@@ -145,7 +145,7 @@ function DashboardInner({ token: t }: { token: string }) {
                   ))}
                 </div>
                 {intent.razorpay_order_id && (
-                  <div className="mt-2 font-mono text-xs text-emerald-400/80">
+                  <div className="mt-2 font-mono text-xs text-amber-400/80">
                     order: {intent.razorpay_order_id}
                   </div>
                 )}

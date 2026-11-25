@@ -51,8 +51,8 @@ const SLIDES = [
     title: "How it works",
     subtitle: "Intent → Gates → Rail",
     icon: Layers,
-    accent: "from-teal-500/20 to-transparent border-teal-500/25",
-    iconCls: "text-teal-300 bg-teal-500/10 ring-teal-500/30",
+    accent: "from-coral-500/20 to-transparent border-coral-500/25",
+    iconCls: "text-coral-300 bg-coral-500/10 ring-coral-500/30",
     bullets: [
       "POST /api/v1/agent/intents with X-API-Key",
       "Idempotency-Key + X-Request-Id for safe retries",
@@ -93,8 +93,8 @@ const SLIDES = [
     title: "Razorpay",
     subtitle: "Test Orders + Checkout + verify",
     icon: CreditCard,
-    accent: "from-emerald-500/20 to-transparent border-emerald-500/25",
-    iconCls: "text-emerald-300 bg-emerald-500/10 ring-emerald-500/30",
+    accent: "from-amber-500/20 to-transparent border-amber-500/25",
+    iconCls: "text-amber-300 bg-amber-500/10 ring-amber-500/30",
     bullets: [
       "Live rzp_test_ Orders (amounts in paise)",
       "Checkout.js → POST /payments/verify (HMAC)",
@@ -107,8 +107,8 @@ const SLIDES = [
     title: "Why this wins",
     subtitle: "Deterministic · reliable · auditable",
     icon: Zap,
-    accent: "from-violet-500/20 to-transparent border-violet-500/25",
-    iconCls: "text-violet-300 bg-violet-500/10 ring-violet-500/30",
+    accent: "from-plum-500/20 to-transparent border-plum-500/25",
+    iconCls: "text-plum-300 bg-plum-500/10 ring-plum-500/30",
     bullets: [
       "Moat: policy + rail health, not another Checkout wrapper",
       "Full decision/audit trail for compliance demos",
@@ -121,8 +121,8 @@ const SLIDES = [
     title: "Ask / Demo",
     subtitle: "Playground + internship-ready stack",
     icon: Target,
-    accent: "from-cyan-500/20 to-transparent border-cyan-500/25",
-    iconCls: "text-cyan-300 bg-cyan-500/10 ring-cyan-500/30",
+    accent: "from-plum-500/20 to-transparent border-plum-500/25",
+    iconCls: "text-plum-300 bg-plum-500/10 ring-plum-500/30",
     bullets: [
       "Open Playground — ALLOW → test card 4111… → verify",
       "Hard-block + soft-fail scenarios in one click",

@@ -57,7 +57,7 @@ export function Nav() {
     <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-ink/85 backdrop-blur-xl nav-glow">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="group flex items-center gap-2.5 font-bold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sentinel-400 to-violet-deep text-white shadow-glow ring-1 ring-white/10 transition group-hover:brightness-110">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sentinel-400 to-coral-deep text-white shadow-glow ring-1 ring-white/10 transition group-hover:brightness-110">
             <Shield className="h-4 w-4" aria-hidden />
           </span>
           <span className="text-[15px]">

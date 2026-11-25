@@ -24,13 +24,13 @@ export function StatusBadge({ status, className }: { status: string; className?:
       <span
         className={clsx(
           "h-1.5 w-1.5 rounded-full",
-          status === "ALLOW" || status === "COMPLETED" || status === "ACTIVE" || status === "HEALTHY"
-            ? "bg-emerald-400"
+          status === "ALLOW" || status === "ACTIVE" || status === "HEALTHY"
+            ? "bg-amber-400"
             : status === "HARD_BLOCK" || status === "FAILED" || status === "CANCELLED" || status === "INACTIVE"
               ? "bg-rose-400"
-              : status === "CLEARED"
-                ? "bg-sky-400"
-                : "bg-amber-400 animate-pulse-soft"
+              : status === "CLEARED" || status === "COMPLETED"
+                ? "bg-plum-400"
+                : "bg-coral-400 animate-pulse-soft"
         )}
         aria-hidden
       />
