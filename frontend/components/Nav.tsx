@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Menu, X, Shield } from "lucide-react";
 import { ADMIN_TOKEN_KEY } from "@/lib/api";
+import { clearSessionCookie } from "@/lib/session";
 import { ServerStatusBadge } from "@/components/SystemStatus";
 
 const links = [
@@ -52,8 +53,16 @@ export function Nav() {
     };
   }, [open]);
 
-  const ctaHref = signedIn ? "/dashboard" : "/dashboard";
+  const ctaHref = signedIn ? "/dashboard" : "/login";
   const ctaLabel = signedIn ? "Console" : "Sign in";
+
+  const logout = () => {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem("sentinel_must_change");
+    clearSessionCookie();
+    window.dispatchEvent(new Event("sentinel:unauthorized"));
+    window.location.replace("/login");
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur-xl nav-glow">
@@ -93,6 +102,11 @@ export function Nav() {
 
         <div className="flex items-center gap-2">
           <ServerStatusBadge compact />
+          {signedIn && (
+            <button type="button" className="btn-ghost hidden text-xs sm:inline-flex md:text-sm" onClick={logout}>
+              Log out
+            </button>
+          )}
           <Link href={ctaHref} className="btn-primary hidden text-xs sm:inline-flex md:text-sm">
             {ctaLabel}
           </Link>
@@ -127,6 +141,11 @@ export function Nav() {
                 </Link>
               );
             })}
+            {signedIn && (
+              <button type="button" className="btn-ghost mt-2 w-full sm:hidden" onClick={logout}>
+                Log out
+              </button>
+            )}
             <Link href={ctaHref} className="btn-primary mt-2 w-full sm:hidden">
               {ctaLabel}
             </Link>

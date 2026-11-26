@@ -18,7 +18,7 @@ WEAK_PASSWORDS = frozenset({"", "admin123", "changeme", "password", "password123
 # Bcrypt hash only — never the plaintext. Used when ADMIN_PASSWORD is unset or weak
 # and ADMIN_PASSWORD_HASH is unset, so a fresh (e.g. ephemeral SQLite) database
 # still accepts the operator password. Override with either env var.
-DEFAULT_ADMIN_PASSWORD_HASH = "$2b$12$v5nHE5Y62E04Fvm5/v7/ruau4aIqnn63q/JFSqOVHTMIR2QNXDeli"
+DEFAULT_ADMIN_PASSWORD_HASH = "$2b$12$Xr9Pcbu7Q/baSmGLSxad9u55ZbPGQ4a7PC.w7rlzRt91lr64x1swS"
 
 
 def resolve_admin_password_hash() -> tuple[str, str]:

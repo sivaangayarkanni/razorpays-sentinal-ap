@@ -1,3 +1,5 @@
+import { clearSessionCookie } from "@/lib/session";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export const ADMIN_TOKEN_KEY = "sentinel_admin_token";
@@ -18,7 +20,14 @@ export class ApiError extends Error {
 function clearStaleAdminToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ADMIN_TOKEN_KEY);
+  localStorage.removeItem("sentinel_must_change");
+  clearSessionCookie();
   window.dispatchEvent(new Event("sentinel:unauthorized"));
+  const path = window.location.pathname;
+  if (path !== "/login") {
+    const next = path + window.location.search;
+    window.location.replace(`/login?next=${encodeURIComponent(next)}`);
+  }
 }
 
 

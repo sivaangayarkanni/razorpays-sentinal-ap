@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
 import { ADMIN_TOKEN_KEY, ApiError, api } from "@/lib/api";
+import { clearSessionCookie, setSessionCookie } from "@/lib/session";
 import { Nav } from "@/components/Nav";
 import { LoadingScreen } from "@/components/ui";
 
@@ -27,6 +28,7 @@ export function useAdminToken() {
 
   const acceptSession = (accessToken: string, requireChange?: boolean) => {
     localStorage.setItem(ADMIN_TOKEN_KEY, accessToken);
+    setSessionCookie();
     if (requireChange) localStorage.setItem(MUST_CHANGE_KEY, "1");
     else localStorage.removeItem(MUST_CHANGE_KEY);
     setToken(accessToken);
@@ -42,8 +44,12 @@ export function useAdminToken() {
   const logout = () => {
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     localStorage.removeItem(MUST_CHANGE_KEY);
+    clearSessionCookie();
     setToken(null);
     setMustChange(false);
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    }
   };
 
   return { token, ready, login, logout, mustChange, acceptSession };
@@ -51,10 +57,12 @@ export function useAdminToken() {
 
 export function LoginForm({
   onLogin,
+  defaultEmail = "",
 }: {
   onLogin: (token: string, mustChange?: boolean) => void;
+  defaultEmail?: string;
 }) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,6 +74,7 @@ export function LoginForm({
     try {
       const res = await api.login(email, password);
       localStorage.setItem(ADMIN_TOKEN_KEY, res.access_token);
+      setSessionCookie();
       if (res.must_change_password) localStorage.setItem(MUST_CHANGE_KEY, "1");
       else localStorage.removeItem(MUST_CHANGE_KEY);
       onLogin(res.access_token, res.must_change_password);
@@ -155,6 +164,7 @@ export function ChangePasswordForm({
     try {
       const res = await api.changePassword(token, currentPassword, newPassword);
       localStorage.setItem(ADMIN_TOKEN_KEY, res.access_token);
+      setSessionCookie();
       localStorage.removeItem(MUST_CHANGE_KEY);
       onChanged(res.access_token);
     } catch (ex: any) {
@@ -250,15 +260,14 @@ export function AdminGuard({
     );
   }
   if (!auth.token) {
+    if (typeof window !== "undefined") {
+      const next = window.location.pathname + window.location.search;
+      window.location.replace(`/login?next=${encodeURIComponent(next)}`);
+    }
     return (
       <>
         <Nav />
-        <LoginForm
-          onLogin={(tok, mustChange) => {
-            auth.acceptSession(tok, mustChange);
-            setLocalMust(Boolean(mustChange));
-          }}
-        />
+        <LoadingScreen />
       </>
     );
   }

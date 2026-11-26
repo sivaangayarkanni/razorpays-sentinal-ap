@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
+import { RouteGuard } from "@/components/RouteGuard";
 
 const sans = Inter({
   subsets: ["latin"],
@@ -27,7 +29,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <Suspense fallback={null}>
+          <RouteGuard>{children}</RouteGuard>
+        </Suspense>
+      </body>
     </html>
   );
 }
